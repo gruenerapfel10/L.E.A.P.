@@ -7,6 +7,8 @@ import { moduleRegistryService } from '../registry/module-registry.service';
 import { modalSchemaRegistryService } from '../modals/registry.service';
 import { structureConstraintService, GenerationConstraints, VocabTypeConstraint } from './structure-constraint.service'; // Import constraint service and renamed type
 import { vocabularyService, VocabularyItem } from '../vocabulary/vocabulary.service'; // Import vocab service
+import { ModuleDefinition, SubmoduleDefinition } from '@/lib/learning/types';
+import { ModalSchemaDefinition } from '@/lib/learning/modals/types';
 
 const DEBUG_GENERATION = isDebugMode('GENERATION');
 
@@ -14,7 +16,7 @@ const DEBUG_GENERATION = isDebugMode('GENERATION');
 const TrueFalseSchema = z.object({
   statement: z.string().describe("The true/false statement to present to the user."),
   isCorrectAnswerTrue: z.boolean().describe("The boolean correct answer (true if the statement is true, false otherwise)."),
-  explanation: z.string().optional().nullable().describe("A brief explanation why the statement is true or false.")
+  explanation: z.string().describe("A brief explanation why the statement is true or false. Return an empty string (\"\") if no specific explanation is needed.")
 });
 
 const MultipleChoiceSchema = z.object({
@@ -23,14 +25,14 @@ const MultipleChoiceSchema = z.object({
   targetWordBase: z.string().describe("The base form (lemma) of the word whose ending is being tested, e.g., 'schön'."),
   options: z.array(z.string()).length(4).describe("An array containing exactly 4 distinct ENDING strings (e.g., 'e', 'en', 'es')."),
   correctOptionIndex: z.number().int().min(0).max(3).describe("The 0-based index of the correct ENDING option in the options array."),
-  explanation: z.string().optional().nullable().describe("A brief explanation why the correct answer is right.")
+  explanation: z.string().describe("A brief explanation why the correct answer is right. Return an empty string (\"\") if no specific explanation is needed.")
 });
 
 const FillInGapSchema = z.object({
     sentenceTemplate: z.string().describe("The sentence containing exactly one blank represented by '___'."),
     correctAnswer: z.string().describe("The single word or short phrase that correctly fills the blank."),
-    acceptedAnswers: z.array(z.string()).optional().nullable().describe("Optional list of other acceptable answers (strings)."),
-    explanation: z.string().optional().nullable().describe("An optional brief explanation related to the grammar point or vocabulary.")
+    acceptedAnswers: z.array(z.string()).describe("Optional list of other acceptable answers (strings). Return an empty array ([]) if none."),
+    explanation: z.string().describe("An optional brief explanation related to the grammar point or vocabulary. Return an empty string (\"\") if no specific explanation is needed.")
 });
 
 // Exporting types might be useful elsewhere
@@ -49,9 +51,15 @@ export interface GenerationResult {
 }
 
 interface GenerateQuestionParams {
-  moduleId: string;
-  submoduleId: string;
-  modalSchemaId: string;
+  moduleId: string; // Keep for potential context, though definition is passed
+  submoduleId: string; // Keep for potential context
+  modalSchemaId: string; // Keep for potential context
+  
+  // Pass the actual definitions to avoid re-fetching
+  moduleDefinition: ModuleDefinition;
+  submoduleDefinition: SubmoduleDefinition;
+  modalSchemaDefinition: ModalSchemaDefinition;
+  
   targetLanguage: string;
   sourceLanguage: string;
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
@@ -66,27 +74,61 @@ export class QuestionGenerationService {
   }
 
   async generateQuestion(params: GenerateQuestionParams): Promise<GenerationResult> {
-    const { moduleId, submoduleId, modalSchemaId, targetLanguage, sourceLanguage, difficulty = 'beginner', forcedConstraints } = params;
+    const { 
+      moduleId, submoduleId, modalSchemaId, // Keep IDs for logging/context
+      moduleDefinition: module, // Rename for clarity
+      submoduleDefinition: submodule, // Rename for clarity
+      modalSchemaDefinition: modalSchema, // Rename for clarity
+      targetLanguage, 
+      sourceLanguage, 
+      difficulty = 'beginner', 
+      forcedConstraints 
+    } = params;
+
     if (DEBUG_GENERATION) console.log(`[Generator Debug] Start Generation: ${moduleId}/${submoduleId}/${modalSchemaId}`);
 
-    // --- 1. Get Base Definitions & Context --- 
-    const module = moduleRegistryService.getModule(moduleId);
-    const submodule = module?.submodules.find(sub => sub.id === submoduleId);
-    const modalSchema = modalSchemaRegistryService.getSchema(modalSchemaId);
+    // --- 1. Use Passed Definitions & Context --- 
+    // const module = moduleRegistryService.getModule(moduleId); // REMOVED
+    // const submodule = module?.submodules.find(sub => sub.id === submoduleId); // REMOVED
+    // const modalSchema = modalSchemaRegistryService.getSchema(modalSchemaId); // REMOVED
+    
+    // Validation: Ensure the passed definitions are valid
     if (!module || !submodule || !modalSchema) {
-      throw new Error(`Invalid input: Module, submodule, or modal schema not found for ${moduleId}/${submoduleId}/${modalSchemaId}`);
+      // This should ideally not happen if the API route validates first, but good practice
+      throw new Error(`Invalid definitions passed to generateQuestion for ${moduleId}/${submoduleId}/${modalSchemaId}`);
     }
-    if (!submodule.supportedModalSchemaIds.includes(modalSchemaId)) {
+    
+    // Check if submodule supports the modal schema (remains valid)
+    if (!submodule.supportedModalSchemaIds?.includes(modalSchemaId)) {
       throw new Error(`Submodule ${submoduleId} does not support modal schema ${modalSchemaId}`);
     }
 
-    const override = submodule.overrides?.[modalSchemaId];
-    const basePromptTemplate = override?.generationPromptOverride || modalSchema.generationConfig.promptTemplate;
+    // --- Resolve Overrides (Submodule > Module > Modal Default) --- 
+    const submoduleOverride = submodule.overrides?.[modalSchemaId];
+    const moduleOverride = module.moduleOverrides?.[modalSchemaId]; // Use moduleOverrides
+    const modalDefault = modalSchema.generationConfig;
+
+    // Determine final prompt template
+    const basePromptTemplate = 
+        submoduleOverride?.generationPromptOverride ?? 
+        moduleOverride?.generationPromptOverride ?? 
+        modalDefault.promptTemplate;
+        
+    // Determine allowed error types (relevant for sentence-error-*)
+    const allowedErrorTypes = 
+        submoduleOverride?.allowedErrorTypes ?? 
+        moduleOverride?.allowedErrorTypes ?? 
+        []; // Default to empty if not defined anywhere
+        
+    // Note: uiComponent override is handled by the API route, not needed here.
+
     const baseGenerationContext = {
       targetLanguage,
       sourceLanguage,
       difficulty,
       submoduleContext: typeof submodule.submoduleContext === 'string' ? submodule.submoduleContext : JSON.stringify(submodule.submoduleContext),
+      // Add allowedErrorTypes to context if needed by prompts (might not be necessary)
+      // allowedErrorTypesContext: allowedErrorTypes.join(', ') 
     };
 
     // --- Declare variables needed in multiple scopes --- 
@@ -111,9 +153,9 @@ export class QuestionGenerationService {
         }
         // Check if we got less than requested for ANY category
         for (const constraint of determinedConstraints.posConstraints) {
-            if ((fetchedVocab[constraint.vocab_type]?.length ?? 0) < constraint.count) {
+            if ((fetchedVocab[constraint.pos]?.length ?? 0) < constraint.count) {
                 allVocabFetched = false;
-                if (DEBUG_GENERATION) console.log(`[Generator Debug] Partial vocab fetch for ${constraint.vocab_type}: got ${fetchedVocab[constraint.vocab_type]?.length ?? 0}/${constraint.count}`);
+                if (DEBUG_GENERATION) console.log(`[Generator Debug] Partial vocab fetch for ${constraint.pos}: got ${fetchedVocab[constraint.pos]?.length ?? 0}/${constraint.count}`);
             }
         }
         if (!allVocabFetched) {
@@ -152,28 +194,30 @@ export class QuestionGenerationService {
             const taskType = modalSchemaId === 'sentence-error-identify' ? 'identify' : 'replace';
             // Ensure constraints are not null for this path
             if (!determinedConstraints) throw new Error("Constraints required for sentence-error generation but were not available.");
-            questionData = await this.generateSentenceErrorQuestion(finalPrompt, targetLanguage, submodule, taskType, modalSchemaId, determinedConstraints, fetchedVocab);
+            // Note: generateSentenceErrorQuestion calls AI service internally
+            questionData = await this.generateSentenceErrorQuestion(finalPrompt, targetLanguage, submodule, taskType, modalSchemaId, determinedConstraints, fetchedVocab, allowedErrorTypes);
 
         } else if (modalSchemaId === 'true-false') {
              schemaToUse = TrueFalseSchema;
              schemaDescription = 'TrueFalseSchema';
-             questionData = await aiService.generateStructuredData(finalPrompt, schemaToUse);
+             questionData = await aiService.generateStructuredData(finalPrompt, schemaToUse, schemaDescription);
         
         } else if (modalSchemaId === 'multiple-choice') {
              schemaToUse = MultipleChoiceSchema;
              schemaDescription = 'MultipleChoiceSchema';
-             questionData = await aiService.generateStructuredData(finalPrompt, schemaToUse); 
+             questionData = await aiService.generateStructuredData(finalPrompt, schemaToUse, schemaDescription); 
 
         } else if (modalSchemaId === 'fill-in-gap') {
              schemaToUse = FillInGapSchema;
              schemaDescription = 'FillInGapSchema';
-             questionData = await aiService.generateStructuredData(finalPrompt, schemaToUse);
+             questionData = await aiService.generateStructuredData(finalPrompt, schemaToUse, schemaDescription);
 
         } else {
              // Fallback
              if (DEBUG_GENERATION) console.log(`[Generator Debug] Using FALLBACK AI flow for schema ${modalSchemaId}.`);
              schemaDescription = `Fallback (z.any())`;
-             questionData = await aiService.generateStructuredData(finalPrompt, z.any());
+             // Use z.any() for fallback, passing a description
+             questionData = await aiService.generateStructuredData(finalPrompt, z.any(), schemaDescription);
              determinedConstraints = null; // Ensure no debug info for fallback
              fetchedVocab = {};
              if (!questionData) console.error(`[Generator] Fallback flow failed for ${modalSchemaId}.`);
@@ -203,12 +247,12 @@ export class QuestionGenerationService {
       if (DEBUG_GENERATION) console.log(`[Generator Debug] Fetching vocabulary for constraints:`, constraints.posConstraints);
       
       for (const constraint of constraints.posConstraints) {
-          const { vocab_type, count } = constraint;
+          const { pos, count } = constraint;
           if (count > 0) {
               const criteria = {
                   language: language,
-                  count: count,
-                  types: [vocab_type],
+                  limit: count,
+                  pos: [pos],
                   themes: constraints.vocabularyTheme ? [constraints.vocabularyTheme] : undefined,
                   cefrLevel: undefined
               };
@@ -216,10 +260,10 @@ export class QuestionGenerationService {
               
               const items = await vocabularyService.getVocabularyItems(criteria);
               if (items.length < count) {
-                  console.warn(`[Generator] Could only fetch ${items.length}/${count} items for POS: ${vocab_type}`);
+                  console.warn(`[Generator] Could only fetch ${items.length}/${count} items for POS: ${pos}`);
               }
               if (items.length > 0) {
-                 fetchedVocab[vocab_type] = items;
+                 fetchedVocab[pos] = items;
               }
           }
       }
@@ -245,24 +289,24 @@ export class QuestionGenerationService {
   private async generateSentenceErrorQuestion(
       finalPrompt: string, // Now receives the fully assembled prompt
       language: string, 
-      submodule: any, 
+      submodule: any, // TODO: Type this better if possible (SubmoduleDefinition)
       taskType: 'identify' | 'replace', 
       modalSchemaId: string, 
       constraints: GenerationConstraints, 
-      requiredVocab: Record<string, VocabularyItem[]>
+      requiredVocab: Record<string, VocabularyItem[]>, 
+      allowedErrorTypes: CorrectIncorrectErrorType[] // Add parameter here
     ): Promise<any> { 
-      if (DEBUG_GENERATION) console.log(`[Generator Debug] Starting sentence-error flow (Task: ${taskType}, Modal: ${modalSchemaId}).`);
+      if (DEBUG_GENERATION) console.log(`[Generator Debug] Starting sentence-error flow (Task: ${taskType}, Modal: ${modalSchemaId}). Allowed Errors: ${allowedErrorTypes.join(', ')}`);
       
       // 1. Generate the CORRECT sentence structure using AI with the FINAL prompt
       // The prompt already includes vocab/structure constraints
-      const correctStructure = await aiService.generateStructuredData(finalPrompt, SentenceStructureSchema);
+      const correctStructure = await aiService.generateStructuredData(finalPrompt, SentenceStructureSchema, 'SentenceStructureSchema');
       if (!correctStructure) throw new Error('AI failed to generate valid sentence structure from final prompt.');
       if (DEBUG_GENERATION) console.log(`[Generator Debug] Received correct sentence structure:`, JSON.stringify(correctStructure, null, 2));
       
       // 2. Apply errors (logic remains the same)
-      const allowedErrorTypes = submodule.overrides?.[modalSchemaId]?.allowedErrorTypes as CorrectIncorrectErrorType[] || [];
       const maxErrors = 1; 
-      if (DEBUG_GENERATION) console.log(`[Generator Debug] Applying errors...`);
+      if (DEBUG_GENERATION) console.log(`[Generator Debug] Applying errors with types: ${allowedErrorTypes.join(', ')}`); // Log resolved error types
       
       const { modifiedStructure, presentedSentence, errorsIntroduced } = await correctIncorrectErrorService.generateErrors({
           sentenceStructure: correctStructure, allowedErrorTypes, maxErrors, language

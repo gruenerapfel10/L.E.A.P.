@@ -48,9 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate forced IDs exist
-    const module = moduleRegistryService.getModule(moduleId);
+    const module = moduleRegistryService.getModule(moduleId, targetLanguage);
     if (!module) {
-       return NextResponse.json({ error: `Module ${moduleId} not found.` }, { status: 404 });
+       return NextResponse.json({ error: `Module ${moduleId} not found for language ${targetLanguage}` }, { status: 404 });
     }
     const submodule = module.submodules.find(sm => sm.id === forcedSubmoduleId);
     if (!submodule) {
@@ -64,11 +64,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Modal Schema ${forcedModalSchemaId} not supported by submodule ${forcedSubmoduleId}.` }, { status: 400 });
     }
 
+    // Get the correct module definition for the language
+    const moduleDef = moduleRegistryService.getModule(moduleId, targetLanguage);
+    if (!moduleDef) {
+      return NextResponse.json({ error: `Module definition not found for ${moduleId} and language ${targetLanguage}` }, { status: 404 });
+    }
+    
+    // Find the submodule definition within the correct module definition
+    const submoduleDef = moduleDef.submodules.find(sub => sub.id === forcedSubmoduleId);
+    if (!submoduleDef) {
+       return NextResponse.json({ error: `Submodule definition ${forcedSubmoduleId} not found in module ${moduleId} for language ${targetLanguage}` }, { status: 404 });
+    }
+
     // Generate the question using the forced parameters AND constraints
     const { questionData, debugInfo }: GenerationResult = await questionGenerationService.generateQuestion({
         moduleId,
         submoduleId: forcedSubmoduleId,
         modalSchemaId: forcedModalSchemaId,
+        moduleDefinition: moduleDef,
+        submoduleDefinition: submoduleDef,
+        modalSchemaDefinition: schema,
         targetLanguage,
         sourceLanguage,
         difficulty: forcedConstraints?.difficulty || 'intermediate',
@@ -87,7 +102,7 @@ export async function POST(request: NextRequest) {
       newQuestionData: questionData, 
       newSubmoduleId: forcedSubmoduleId,
       newModalSchemaId: forcedModalSchemaId,
-      newSubmoduleTitle: submodule.title_en, 
+      newSubmoduleTitle: submoduleDef.localization[targetLanguage]?.title || submoduleDef.title_en,
       newUiComponent: schema.uiComponent,
       // Pass debug info back to the client (debug menu)
       questionDebugInfo: debugInfo 

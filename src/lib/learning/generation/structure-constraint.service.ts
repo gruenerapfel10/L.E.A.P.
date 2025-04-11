@@ -5,7 +5,7 @@ const DEBUG_CONSTRAINT_SERVICE = isDebugMode('CONSTRAINT_SERVICE');
 
 // Define the detailed output structure for constraints
 export interface VocabTypeConstraint {
-  vocab_type: string; // Renamed from pos
+  pos: string; // Changed from vocab_type to align with DB schema
   count: number; // Desired count
 }
 
@@ -88,24 +88,24 @@ export class StructureConstraintService {
             vocabularyTheme: inferredTheme, // Use the inferred theme
         };
 
-        // Use new field name 'vocab_type' and full type names
+        // Use the new field name 'pos'
         if (submodule.id.startsWith('adjective-declension')) {
-            defaultConstraints.posConstraints.push({ vocab_type: 'NOUN', count: 1 });
-            defaultConstraints.posConstraints.push({ vocab_type: 'ADJECTIVE', count: 1 });
-            defaultConstraints.posConstraints.push({ vocab_type: 'VERB', count: 1 });
+            defaultConstraints.posConstraints.push({ pos: 'NOUN', count: 1 });
+            defaultConstraints.posConstraints.push({ pos: 'ADJECTIVE', count: 1 });
+            defaultConstraints.posConstraints.push({ pos: 'VERB', count: 1 });
             if (!submodule.id.endsWith('ohne-artikel')) {
-                 defaultConstraints.posConstraints.push({ vocab_type: 'DETERMINER', count: 1 });
+                 defaultConstraints.posConstraints.push({ pos: 'DETERMINER', count: 1 });
             }
         } else {
-             defaultConstraints.posConstraints.push({ vocab_type: 'NOUN', count: 1 });
-             defaultConstraints.posConstraints.push({ vocab_type: 'VERB', count: 1 });
+             defaultConstraints.posConstraints.push({ pos: 'NOUN', count: 1 });
+             defaultConstraints.posConstraints.push({ pos: 'VERB', count: 1 });
         }
         
         // Adjust defaults based on difficulty (example)
         if (difficulty === 'intermediate' || difficulty === 'advanced') {
             defaultConstraints.numClauses = (Math.random() < 0.1) ? 2 : 1; // Rarely 2 clauses
             // Add adverb occasionally
-             if (Math.random() < 0.3) defaultConstraints.posConstraints.push({ vocab_type: 'ADVERB', count: 1 }); 
+             if (Math.random() < 0.3) defaultConstraints.posConstraints.push({ pos: 'ADVERB', count: 1 }); 
         }
         
          if (DEBUG_CONSTRAINT_SERVICE) {

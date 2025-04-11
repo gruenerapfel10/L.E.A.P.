@@ -70,12 +70,17 @@ export function Chat({
         // Shift+Enter will naturally create a new line in textarea
     };
 
+    // Filter out the session ID system message before rendering
+    const filteredMessages = messages.filter(m => 
+        !(m.role === 'system' && m.content?.startsWith('SESSION_ID::'))
+    );
+
     return (
         <Card className="h-full flex flex-col bg-transparent border-none shadow-none relative py-0">
             <CardContent className="flex-1 overflow-hidden p-0 pb-0">
                 <ScrollArea className="h-full px-4 focus:outline-none" ref={scrollAreaRef} tabIndex={0}>
                     <div className="space-y-4 py-4 pb-24">
-                        {messages.map((m: Message) => (
+                        {filteredMessages.map((m: Message) => (
                             <div
                                 key={m.id}
                                 className={cn(

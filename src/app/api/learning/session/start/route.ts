@@ -33,6 +33,17 @@ export async function POST(request: Request) {
     // Ensure registries are initialized
     await initializeRegistries();
 
+    // Verify registries are ready immediately after initialization
+    // This is a sanity check
+    if (!modalSchemaRegistryService.getSchema('multiple-choice')) {
+      // Attempt to re-initialize just in case, though this might indicate a deeper issue
+      console.warn("Modal schema 'multiple-choice' not found immediately after init, attempting re-init...");
+      await modalSchemaRegistryService.initialize(); 
+      if (!modalSchemaRegistryService.getSchema('multiple-choice')) {
+         throw new Error("Critical Error: Modal schema 'multiple-choice' still not found after re-initialization.");
+      }
+    }
+
     // Parse the request body
     const body = await request.json();
     const { moduleId, targetLanguage, sourceLanguage = 'en' } = body; // Default sourceLanguage
@@ -51,10 +62,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify the module exists
-    const module = moduleRegistryService.getModule(moduleId);
+    // Verify the module exists for the target language
+    const module = moduleRegistryService.getModule(moduleId, targetLanguage);
     if (!module) {
-      return NextResponse.json({ error: `Module not found: ${moduleId}` }, { status: 404 });
+      return NextResponse.json({ error: `Module not found for ID ${moduleId} and language ${targetLanguage}` }, { status: 404 });
     }
 
     // Start a new learning session
@@ -90,6 +101,9 @@ export async function POST(request: Request) {
       moduleId,
       submoduleId,
       modalSchemaId,
+      moduleDefinition: module,
+      submoduleDefinition: submodule,
+      modalSchemaDefinition: modalSchema,
       targetLanguage,
       sourceLanguage,
     });

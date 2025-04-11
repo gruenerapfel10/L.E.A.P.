@@ -32,7 +32,7 @@ export const DebugMenu: React.FC<DebugMenuProps> = ({ sessionState, onQuestionGe
   
   // State for the FORCED constraints
   const [forcedConstraints, setForcedConstraints] = useState<Partial<GenerationConstraints>>({});
-  const [posConstraints, setPosConstraints] = useState<VocabTypeConstraint[]>([{ vocab_type: 'NOUN', count: 1 }, { vocab_type: 'VERB', count: 1 }]);
+  const [posConstraints, setPosConstraints] = useState<VocabTypeConstraint[]>([{ pos: 'NOUN', count: 1 }, { pos: 'VERB', count: 1 }]);
   
   // Fetch module data when menu opens
   useEffect(() => {
@@ -45,7 +45,7 @@ export const DebugMenu: React.FC<DebugMenuProps> = ({ sessionState, onQuestionGe
   useEffect(() => {
       if (isOpen) {
           // Reset to some sensible defaults when opening
-          setPosConstraints([{ vocab_type: 'NOUN', count: 1 }, { vocab_type: 'VERB', count: 1 }]);
+          setPosConstraints([{ pos: 'NOUN', count: 1 }, { pos: 'VERB', count: 1 }]);
           setForcedConstraints({
               numClauses: 1,
               sentenceType: SentenceType.STATEMENT,
@@ -97,9 +97,9 @@ export const DebugMenu: React.FC<DebugMenuProps> = ({ sessionState, onQuestionGe
   };
   
   // Handlers for updating POS constraints
-  const handleVocabTypeChange = (index: number, value: string) => {
+  const handlePosChange = (index: number, value: string) => {
       const updated = [...posConstraints];
-      updated[index].vocab_type = value;
+      updated[index].pos = value;
       setPosConstraints(updated);
   };
   const handleCountChange = (index: number, value: number) => {
@@ -108,7 +108,7 @@ export const DebugMenu: React.FC<DebugMenuProps> = ({ sessionState, onQuestionGe
       setPosConstraints(updated);
   };
   const addPosConstraint = () => {
-      setPosConstraints([...posConstraints, { vocab_type: '', count: 1 }]);
+      setPosConstraints([...posConstraints, { pos: '', count: 1 }]);
   };
   const removePosConstraint = (index: number) => {
       setPosConstraints(posConstraints.filter((_, i) => i !== index));
@@ -126,7 +126,7 @@ export const DebugMenu: React.FC<DebugMenuProps> = ({ sessionState, onQuestionGe
             difficulty: sessionState.difficulty || 'intermediate', // Get from session state or default
             numClauses: forcedConstraints.numClauses ?? 1,
             sentenceType: forcedConstraints.sentenceType ?? SentenceType.STATEMENT,
-            posConstraints: posConstraints.filter(pc => pc.vocab_type && pc.count > 0),
+            posConstraints: posConstraints.filter(pc => pc.pos && pc.count > 0),
             vocabularyTheme: forcedConstraints.vocabularyTheme || null,
             numRelativeClauses: forcedConstraints.numRelativeClauses ?? 0
         };
@@ -329,8 +329,8 @@ export const DebugMenu: React.FC<DebugMenuProps> = ({ sessionState, onQuestionGe
                          <div key={index} className="flex items-center gap-2">
                              <Input 
                                 placeholder="Type (e.g. NOUN)"
-                                value={pc.vocab_type}
-                                onChange={(e) => handleVocabTypeChange(index, e.target.value)}
+                                value={pc.pos}
+                                onChange={(e) => handlePosChange(index, e.target.value)}
                                 className="flex-1"
                              />
                              <Input 

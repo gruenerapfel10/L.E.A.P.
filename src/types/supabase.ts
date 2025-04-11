@@ -9,6 +9,235 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      languages: {
+        Row: {
+          code: string
+          name: string
+          script: string | null
+        }
+        Insert: {
+          code: string
+          name: string
+          script?: string | null
+        }
+        Update: {
+          code?: string
+          name?: string
+          script?: string | null
+        }
+        Relationships: []
+      }
+      themes: {
+        Row: {
+          id: number
+          name: string
+        }
+        Insert: {
+          id?: number
+          name: string
+        }
+        Update: {
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      vocabulary_entries: {
+        Row: {
+          id: number
+          language_code: string
+          word: string
+          lemma: string
+          pos: string
+          features: Json | null
+          definition: string | null
+          cefr_level: string | null
+          pronunciation_ipa: string | null
+          audio_url: string | null
+          frequency_rank: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          language_code: string
+          word: string
+          lemma: string
+          pos: string
+          features?: Json | null
+          definition?: string | null
+          cefr_level?: string | null
+          pronunciation_ipa?: string | null
+          audio_url?: string | null
+          frequency_rank?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          language_code?: string
+          word?: string
+          lemma?: string
+          pos?: string
+          features?: Json | null
+          definition?: string | null
+          cefr_level?: string | null
+          pronunciation_ipa?: string | null
+          audio_url?: string | null
+          frequency_rank?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_entries_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      vocabulary_themes: {
+        Row: {
+          vocabulary_entry_id: number
+          theme_id: number
+        }
+        Insert: {
+          vocabulary_entry_id: number
+          theme_id: number
+        }
+        Update: {
+          vocabulary_entry_id?: number
+          theme_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_themes_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "themes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vocabulary_themes_vocabulary_entry_id_fkey"
+            columns: ["vocabulary_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      translations: {
+        Row: {
+          id: number
+          entry_id_1: number
+          entry_id_2: number
+          relationship_type: string
+          context_notes: string | null
+          quality_score: number | null
+        }
+        Insert: {
+          id?: number
+          entry_id_1: number
+          entry_id_2: number
+          relationship_type?: string
+          context_notes?: string | null
+          quality_score?: number | null
+        }
+        Update: {
+          id?: number
+          entry_id_1?: number
+          entry_id_2?: number
+          relationship_type?: string
+          context_notes?: string | null
+          quality_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translations_entry_id_1_fkey"
+            columns: ["entry_id_1"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "translations_entry_id_2_fkey"
+            columns: ["entry_id_2"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_examples: {
+        Row: {
+          id: number
+          vocabulary_entry_id: number
+          sentence: string
+          translation_en: string | null
+          source_reference: string | null
+        }
+        Insert: {
+          id?: number
+          vocabulary_entry_id: number
+          sentence: string
+          translation_en?: string | null
+          source_reference?: string | null
+        }
+        Update: {
+          id?: number
+          vocabulary_entry_id?: number
+          sentence?: string
+          translation_en?: string | null
+          source_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_examples_vocabulary_entry_id_fkey"
+            columns: ["vocabulary_entry_id"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      word_forms: {
+         Row: {
+            id: number
+            lemma_entry_id: number
+            form_entry_id: number
+            inflection_description: Json | null
+          }
+          Insert: {
+            id?: number
+            lemma_entry_id: number
+            form_entry_id: number
+            inflection_description?: Json | null
+          }
+          Update: {
+            id?: number
+            lemma_entry_id?: number
+            form_entry_id?: number
+            inflection_description?: Json | null
+          }
+          Relationships: [
+            {
+              foreignKeyName: "word_forms_form_entry_id_fkey"
+              columns: ["form_entry_id"]
+              isOneToOne: false
+              referencedRelation: "vocabulary_entries"
+              referencedColumns: ["id"]
+            },
+            {
+              foreignKeyName: "word_forms_lemma_entry_id_fkey"
+              columns: ["lemma_entry_id"]
+              isOneToOne: false
+              referencedRelation: "vocabulary_entries"
+              referencedColumns: ["id"]
+            },
+          ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -16,6 +245,9 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          native_language: string
+          target_language: string
+          ui_language: string
           plan: string | null
           stripe_customer_id: string | null
           stripe_price_id: string | null
@@ -32,6 +264,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          native_language?: string
+          target_language?: string
+          ui_language?: string
           plan?: string | null
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
@@ -48,6 +283,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          native_language?: string
+          target_language?: string
+          ui_language?: string
           plan?: string | null
           stripe_customer_id?: string | null
           stripe_price_id?: string | null
@@ -137,54 +375,6 @@ export type Database = {
           },
         ]
       }
-      vocabulary: {
-        Row: {
-          cefr_level: string | null
-          created_at: string
-          definition: string | null
-          features: Json | null
-          frequency: number
-          id: number
-          language: string
-          lemma: string | null
-          pos: string | null
-          themes: string[] | null
-          translations: Json | null
-          updated_at: string
-          word: string
-        }
-        Insert: {
-          cefr_level?: string | null
-          created_at?: string
-          definition?: string | null
-          features?: Json | null
-          frequency?: number
-          id?: number
-          language: string
-          lemma?: string | null
-          pos?: string | null
-          themes?: string[] | null
-          translations?: Json | null
-          updated_at?: string
-          word: string
-        }
-        Update: {
-          cefr_level?: string | null
-          created_at?: string
-          definition?: string | null
-          features?: Json | null
-          frequency?: number
-          id?: number
-          language?: string
-          lemma?: string | null
-          pos?: string | null
-          themes?: string[] | null
-          translations?: Json | null
-          updated_at?: string
-          word?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -198,20 +388,7 @@ export type Database = {
           p_cefr_level?: string
           p_themes?: string[]
         }
-        Returns: {
-          id: number
-          word: string
-          language: string
-          lemma: string
-          pos: string
-          features: Json
-          cefr_level: string
-          themes: string[]
-          translations: Json
-          frequency: number
-          created_at: string
-          updated_at: string
-        }[]
+        Returns: Database["public"]["Tables"]["vocabulary_entries"]["Row"][]
       }
     }
     Enums: {

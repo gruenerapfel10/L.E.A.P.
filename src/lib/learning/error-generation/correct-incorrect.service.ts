@@ -204,7 +204,7 @@ export class CorrectIncorrectErrorService {
         }
 
         // Call AI service
-        const aiResult = await aiService.generateStructuredData(prompt, IncorrectWordSchema);
+        const aiResult = await aiService.generateStructuredData(prompt, IncorrectWordSchema, `IncorrectWordSchema for ${type}`);
 
         if (aiResult && aiResult.incorrectWord) {
             const modifiedText = aiResult.incorrectWord;

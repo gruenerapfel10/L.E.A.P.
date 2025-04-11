@@ -86,6 +86,12 @@ This file tracks the development tasks for the Leap learning platform.
 -   [x] ~~**Vocabulary & Context Conflict:** ...~~ Log: Re-prioritized prompts... Added explicit negative constraints... -> Fixed sentence-error prompts.
 -   [ ] **Initial Load Errors:** `/dashboard/language-skills` page shows repeated `Could not determine skill type for schema ID: null` and registry initialization logs. Needs investigation in frontend page/component logic.
 -   [ ] **SentenceStructureSchema Generation Failure:** AI fails to generate JSON matching SentenceStructureSchema (e.g., `clauses: null` error) for `sentence-error-*` modals. Log: Aligned prompts with MC structure. Needs testing.
+-   [x] ~~**Debug Menu Disabled:** Dropdowns were disabled due to `/api/learning/module` returning 404.~~ Log: Updated API route to use `getDefinitionsForModuleId` and return first available language definition for the concept.
+-   [x] ~~**Picker Always Choosing Same Submodule:** `adjective-declension.de.json` only contained one submodule.~~ Log: Restored other submodules.
+-   [x] ~~**AI Marking Error:** Zod validation failed for `correctAnswer` being null.~~ Log: Updated schema to require string (`""` for null case).
+-   [x] ~~**AI Generation Error (True/False):** Zod validation failed for `explanation` being null.~~ Log: Updated schema to require string (`""` for null case).
+-   [x] ~~**AI Generation Error (General):** Systematically removed `.optional().nullable()` from AI-facing Zod schemas (`MultipleChoice`, `FillInGap`) to prevent Google API schema errors.~~ Log: Updated schemas to require string/array/object and use descriptions to guide AI on empty values.
+-   [x] ~~**AI Assistant Context:** Context data (`chatContextBody`) was not being sent from `SessionPage` via `useChat` hook.~~ Log: Refactored `/api/chat` to fetch context based on `sessionId` instead of relying on the request body.
 
 ## Core Learning Loop
 
@@ -109,7 +115,7 @@ This file tracks the development tasks for the Leap learning platform.
 - [ ] **Add Task Type Selector to Debug Menu?:** ...
 - [ ] **Enhance Forced Generation:** ...
 - [ ] **Log External API Error:** ...
-- [ ] **Issue with `correct-incorrect-sentence` Generation:** ...
+- [x] ~~**Issue with `correct-incorrect-sentence` Generation:** ...~~ Log: Refactored Module Registry and dependent services (Picker, API) to support language-specific module definitions.
 
 ## UI Components for Interaction Modals
 
@@ -173,9 +179,146 @@ This file tracks the development tasks for the Leap learning platform.
     -   [ ] Ensure `SentenceStructure` data is available...
     -   [ ] Modify `question-generation.service.ts` or session state logic...
 
-## Architecture Notes (Clarification)
+## Architecture Overview
 
-*   **Module:** Broad topic...
-*   **Submodule:** Specific aspect/rule...
-*   **Modal Schema:** Interaction type/format (`sentence-error-identify`, `multiple-choice`)... Defines UI component, generation/marking approach.
-*   **Task Type:** Specific interaction variant (`identify`, `replace`, `confirm`). Determined by backend logic based on chosen Modal Schema ID.
+This section provides a high-level overview of the key components and data flow in the Leap learning platform, focusing on the backend services and content definition.
+
+**Core Concepts:**
+
+*   **Module Concept:** Represents a broad learning topic (e.g., `adjective-declension`, `verb-conjugation`). Identified by a language-agnostic `moduleId`.
+*   **Module Definition:** A specific JSON file (e.g., `adjective-declension.json`) containing the actual content, submodules, overrides, and helper resources for one or more *target languages* related to a Module Concept. Contains `supportedTargetLanguages` array.
+*   **Submodule:** A specific aspect or rule within a module (e.g., `nach-bestimmte-artikel`). Defined within a Module Definition file.
+*   **Modal Schema:** Defines an interaction type/format (e.g., `multiple-choice`, `sentence-error-identify`) including its UI component, generation logic, and marking logic. Defined in separate JSON files.
+*   **Session:** Represents a user's learning attempt through a module.
+*   **Event:** Represents a single interaction (question presented, answer submitted, marked) within a session.
+
+**Key Services:**
+
+1.  **Registries (`ModuleRegistryService`, `ModalSchemaRegistryService`):**
+    *   Responsible for loading and caching Module Definition and Modal Schema JSON files on application startup (or first API request).
+    *   `ModuleRegistryService` now stores definitions indexed by both `moduleId` and `targetLanguage`. It provides methods like `getModule(id, targetLanguage)` to retrieve language-specific content and `getUniqueModuleConcepts()` for listing available topics.
+    *   Ensures definitions are readily available without repeated file parsing.
+
+2.  **Vocabulary Service (`VocabularyService`):**
+    *   Interacts with the PostgreSQL database (`vocabulary_entries` table and related tables like `themes`, `translations`, `word_forms`).
+    *   Provides methods to fetch vocabulary items based on criteria (language, POS, theme, CEFR level) via the `get_random_vocabulary` RPC function (which needs its internal logic updated for theme joins).
+    *   Designed with a relational, concept-aware model for scalability and language nuance.
+
+3.  **Structure Constraint Service (`StructureConstraintService`):**
+    *   Determines *default* grammatical and structural constraints (e.g., number of clauses, required POS counts, inferred theme) for sentence generation based on the submodule and difficulty.
+    *   Does *not* directly interact with Vocabulary Service.
+
+4.  **Question Generation Service (`QuestionGenerationService`):**
+    *   Orchestrates the generation of a specific question instance.
+    *   Receives the specific `ModuleDefinition`, `SubmoduleDefinition`, and `ModalSchemaDefinition` as parameters (avoids internal registry lookups).
+    *   Determines constraints (using `StructureConstraintService` or forced overrides).
+    *   Fetches required vocabulary (using `VocabularyService`).
+    *   Constructs a detailed prompt using the relevant template (from modal schema or submodule override).
+    *   Calls the `AIService` to generate structured question data based on the prompt and a specific Zod schema for the modal type.
+    *   For `sentence-error-*` modals, it first generates a correct sentence structure and then uses `CorrectIncorrectErrorService` to introduce errors.
+
+5.  **AI Service (`AIService`):**
+    *   Handles communication with the external AI provider (Google Gemini).
+    *   Uses the Vercel AI SDK (`generateObject`) for abstraction and direct Zod schema validation.
+    *   Includes basic retry logic for validation failures.
+    *   Removes the need for `zod-schema-converter.ts`.
+
+6.  **Error Generation Service (`CorrectIncorrectErrorService`):**
+    *   Specifically for `sentence-error-*` modals.
+    *   Takes a correct `SentenceStructure`.
+    *   Identifies potential locations for allowed error types.
+    *   Uses the `AIService` to generate *plausible* incorrect word forms for specific locations.
+    *   Modifies the sentence structure and reconstructs the sentence string with errors.
+
+7.  **Marking Service (`MarkingService`):**
+    *   Evaluates a user's answer.
+    *   Retrieves the relevant language-specific `ModuleDefinition`, `SubmoduleDefinition`, and `ModalSchemaDefinition` (using `targetLanguage`).
+    *   Implements simple, deterministic marking logic for some modal types (e.g., `multiple-choice`, `true-false`).
+    *   For complex marking, constructs a prompt using the marking template (from modal schema or override).
+    *   Calls the `AIService` to get structured marking results (isCorrect, score, feedback) based on the `AiMarkingResultSchema`.
+
+8.  **Picker Algorithm Service (`PickerAlgorithmService`):**
+    *   Decides the *next* `submoduleId` and `modalSchemaId` for the user within a session.
+    *   Currently uses a `RandomStrategy` which requires the `targetLanguage` to fetch the correct `ModuleDefinition` before randomly selecting from its submodules and the submodule's supported schemas.
+    *   Designed to support other strategies (like Spaced Repetition) in the future.
+
+9.  **Statistics Service (`StatisticsService`):**
+    *   Handles interactions with the `user_learning_sessions` and `user_session_events` tables.
+    *   Starts/ends sessions, records events (including marking results).
+    *   Provides methods to fetch user history and calculate performance statistics (e.g., `getUserModulePerformance`).
+
+**API Routes:**
+
+*   `/api/learning/module`: Fetches basic module concept details (submodule list) for the Debug Menu.
+*   `/api/learning/session/start`: Initializes registries, starts a session (records in DB), uses Picker to get the first step, uses Generator to create the first question, records the initial event, and returns session/question details.
+*   `/api/learning/session/state`: Initializes registries, fetches current session state (including the *first* event's details) from the database to allow resuming/reloading a session page.
+*   `/api/learning/session/submit`: Initializes registries, receives user answer, uses Marking Service, records the event, uses Picker to get the next step, uses Generator for the next question, returns marking result and next step/question details.
+*   `/api/learning/session/generate` (Debug): Allows forcing generation with specific parameters and constraints via the Debug Menu.
+*   `/api/chat`: Handles AI assistant chat requests. ~~enriching the prompt with context (module, submodule, question, stats, languages) before sending to the AI.~~ **Refactored:** Now receives only `sessionId` and fetches all required context (session, latest event, definitions, stats) from DB/registries before constructing the prompt.
+
+**Frontend (`SessionPage`):**
+
+*   Fetches initial session state from `/api/learning/session/state`.
+*   Renders the appropriate UI component based on `modalSchemaId` / `uiComponent`.
+*   Handles user interaction and calls `/api/learning/session/submit`.
+*   Updates state with the next question returned by the submit API.
+*   Provides context to the `Chat` component (`useChat` hook), which interacts with `/api/chat`.
+
+**Data Flow (Simplified Submit -> Next Question):**
+
+1.  User submits answer on `SessionPage`.
+2.  `SessionPage` POSTs to `/api/learning/session/submit` (with answer, IDs, questionData, languages).
+3.  `/submit` API:
+    *   Initializes registries.
+    *   Calls `MarkingService.markAnswer` (passes languages).
+    *   Calls `StatisticsService.recordEvent`.
+    *   Calls `PickerAlgorithmService.getNextStep` (passes languages).
+    *   Gets specific Module/Submodule/Schema definitions (using languages).
+    *   Calls `QuestionGenerationService.generateQuestion` (passes definitions & languages).
+    *   Returns { markResult, nextStep, nextQuestionData, nextQuestionDebugInfo }.
+4.  `SessionPage` receives response, displays `markResult`, updates state with `nextQuestionData` and other info for the next interaction.
+
+## AI Assistant Context Enhancement
+
+**Goal:** Enhance the AI assistant's context awareness to provide more relevant and contextual help based on the current learning session.
+
+**Phase 1: Context Data Structure**
+- [ ] **Define Context Types:** Create TypeScript interfaces for system and message-level context data.
+- [ ] **System Context:** Module info, help sheet content, general learning context.
+- [ ] **Message Context:** Current submodule, modal type, question data, user stats, vocabulary constraints.
+
+**Phase 2: Context Integration**
+- [ ] **Update Chat API Route:** Enhance `/api/chat` to handle separate system and message contexts.
+- [ ] **Update useChat Hook:** Modify context passing in `SessionPage` to include both system and message contexts.
+- [ ] **Add Debug Logging:** Implement comprehensive logging of context data at each step.
+
+**Phase 3: System Prompt Enhancement**
+- [ ] **Update System Prompt:** Modify the system prompt to better utilize the provided context.
+- [ ] **Add Context Acknowledgment:** Ensure AI acknowledges current context in responses.
+- [ ] **Add Help Sheet Integration:** Enable AI to reference help sheet content when relevant.
+
+**Phase 4: Testing & Refinement**
+- [ ] **Test Context Flow:** Verify context is properly passed and utilized at each step.
+- [ ] **Test Response Quality:** Ensure AI responses are appropriately contextual.
+- [ ] **Refine Logging:** Optimize debug logging for development and production.
+
+*   **Override Mechanism:** Allows tailoring generation/marking prompts per submodule/modal combination. **Improved:** Now uses a hierarchical system (Submodule > Module > Modal Default) to reduce duplication.
+*   **AI Service (`AIService`):** Uses Vercel AI SDK. Includes retry logic. No Zod conversion needed.
+
+**Potential Breaking Points & Weaknesses:**
+
+*   **Vocabulary RPC Function (`get_random_vocabulary`):** Theme filtering logic was placeholder. **Fixed:** Updated SQL function with appropriate joins.
+*   **Module Registry Initialization & Consistency:** No validation for consistent `title_en`, `supportedSourceLanguages` across language files for the same `moduleId`. **Action:** Implement validation checks (Improvement 6).
+*   **Submodule Overrides (Complexity & Repetition):** Mitigated: Hierarchical overrides reduce duplication but add resolution complexity.
+*   **Modal Schema Definition (Generation/Marking Coupling):** Still coupled. **Action:** Consider decoupling later (Improvement 3).
+*   **Structure Constraint Service (Defaults vs. Overrides):** Defaults hardcoded. **Action:** Consider defining defaults in JSON (Improvement 4).
+*   **Content Definition (JSON Verbosity):** Hierarchical overrides help, but large files can still be complex. **Action:** Consider validation tooling (Improvement 6).
+
+**Brainstorming Improvements (Standardization vs. Customization):**
+
+*   **Improvement 1: Vocabulary Service - Query Builder Approach:** Keeps logic in TS, potentially more flexible than complex SQL.
+*   **Improvement 2: Hierarchical Overrides / Templates:** **Implemented.** Reduces duplication via Submodule > Module > Modal Default layering.
+*   **Improvement 3: Decouple Marking/Generation Config?:** More modular, but more files.
+*   **Improvement 4: Constraint Definition in JSON:** Keeps simple defaults with content, but limited expressiveness.
+*   **Improvement 5: Abstracted AI Service (Vercel AI SDK?):** Implemented. Provides abstraction.
+*   **Improvement 6: Content Validation & Tooling:** **Implemented Zod Schemas.** Add Zod schemas for definitions. **Action:** Create/run validation script manually.

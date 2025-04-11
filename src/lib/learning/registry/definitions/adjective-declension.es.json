@@ -1,0 +1,78 @@
+{
+  "id": "adjective-declension",
+  "title_en": "Adjective Agreement (Spanish)",
+  "supportedSourceLanguages": ["en"],
+  "supportedTargetLanguages": ["es"],
+  "localization": {
+    "es": {
+      "title": "Concordancia de Adjetivos"
+    },
+    "en": {
+      "title": "Adjective Agreement (Spanish)"
+    }
+  },
+  "submodules": [
+    {
+      "id": "genero-agreement",
+      "title_en": "Gender Agreement",
+      "localization": {
+        "es": { "title": "Concordancia de Género" },
+        "en": { "title": "Gender Agreement" }
+      },
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "sentence-error-identify", "sentence-error-replace"],
+      "submoduleContext": "Focuses on choosing the correct adjective ending (-o/-a) to match the gender (masculine/feminine) of the noun.",
+      "overrides": {
+        "multiple-choice": {
+          "generationPromptOverride": "Primary task: Generate a CORRECT Spanish example sentence demonstrating an ATTRIBUTIVE adjective matching the GENDER of a noun (masculine/feminine). **SECOND Requirement: MUST use these Spanish words: {requiredVocabList}.** Adhere to structure: {structuralConstraintsDescription}. AFTER generating the sentence: Generate a `question` (e.g., \"¿Qué terminación concuerda con el género?\"). Put the **COMPLETE** sentence in `sentence` field. Put the adjective base form (masculine singular) in `targetWordBase`. Provide 4 distinct adjective **ENDING** options relevant to Spanish gender (e.g., 'o', 'a', 'e'). Format JSON..."
+        },
+        "fill-in-gap": {
+           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT Spanish example sentence. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE adjective with '___'. Provide the sentence template and the correct adjective form. Format the output as JSON."
+        },
+        "sentence-error-identify": {
+            "allowedErrorTypes": ["ADJECTIVE_ENDING"]
+        },
+        "sentence-error-replace": {
+            "allowedErrorTypes": ["ADJECTIVE_ENDING"]
+        }
+      },
+      "helpers": [
+        {
+          "title": "Gender Agreement Basics",
+          "contentType": "markdown",
+          "content": "### Gender Agreement\n\n- Most adjectives change their ending to match the gender of the noun they describe.\n- Adjectives ending in **-o** in the masculine form usually change to **-a** for the feminine form.\n  - *Example: el libr**o** roj**o** (the red book) -> la mes**a** roj**a** (the red table)*\n- Adjectives ending in **-e** or a **consonant** often have the **same** form for both masculine and feminine.\n  - *Example: el libr**o** verd**e** -> la mes**a** verd**e** / el chic**o** amabl**e** -> la chic**a** amabl**e** / el exam**en** difíci**l** -> la lecci**ón** difíci**l** *\n- Some adjectives ending in a consonant add **-a** for the feminine (especially nationalities or those ending in -or, -ón, -án, -ín).\n  - *Example: el chic**o** trabajad**or** -> la chic**a** trabajad**ora** / el hómbr**e** alem**án** -> la muj**er** alem**ana** *"
+        }
+      ]
+    },
+    {
+      "id": "numero-agreement",
+      "title_en": "Number Agreement",
+      "localization": {
+        "es": { "title": "Concordancia de Número" },
+        "en": { "title": "Number Agreement" }
+      },
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "sentence-error-identify", "sentence-error-replace"],
+      "submoduleContext": "Focuses on adding the correct ending (-s/-es) to adjectives to match the number (singular/plural) of the noun.",
+      "overrides": {
+        "multiple-choice": {
+           "generationPromptOverride": "Primary task: Generate a CORRECT Spanish example sentence demonstrating an ATTRIBUTIVE adjective matching the NUMBER of a noun (singular/plural). **SECOND Requirement: MUST use these Spanish words: {requiredVocabList}.** Adhere to structure: {structuralConstraintsDescription}. AFTER generating the sentence: Generate a `question` (e.g., \"¿Qué terminación concuerda con el número?\"). Put the **COMPLETE** sentence in `sentence` field. Put the adjective base form (masculine singular) in `targetWordBase`. Provide 4 distinct adjective **FORMS** relevant to Spanish number agreement (e.g., 'rojo', 'rojos', 'roja', 'rojas'). Format JSON..."
+        },
+         "fill-in-gap": {
+           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT Spanish example sentence using a plural noun and adjective. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE plural adjective with '___'. Provide the sentence template and the correct adjective form. Format the output as JSON."
+        },
+        "sentence-error-identify": {
+            "allowedErrorTypes": ["ADJECTIVE_ENDING"]
+        },
+        "sentence-error-replace": {
+            "allowedErrorTypes": ["ADJECTIVE_ENDING"]
+        }
+      },
+      "helpers": [
+        {
+          "title": "Number Agreement Basics",
+          "contentType": "markdown",
+          "content": "### Number Agreement\n\n- Adjectives must also agree in number with the nouns they modify.\n- To make an adjective plural, **add -s** if it ends in a vowel.\n  - *Example: roj**o** -> rojo**s** / roj**a** -> roja**s** / verd**e** -> verde**s** *\n- To make an adjective plural, **add -es** if it ends in a consonant.\n  - *Example: difíci**l** -> difícile**s** / trabajad**or** -> trabajadore**s** *\n- Adjectives ending in **-z** change the **z** to **c** before adding **-es**.\n  - *Example: feli**z** -> felice**s** *"
+        }
+      ]
+    }
+  ]
+} 

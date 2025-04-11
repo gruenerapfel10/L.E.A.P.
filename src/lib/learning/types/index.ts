@@ -1,4 +1,6 @@
+import { Database } from '@/types/supabase'; // Corrected path for supabase types
 import { z } from 'zod';
+import { CorrectIncorrectErrorType } from '../error-generation/correct-incorrect.service'; // Import the error type
 
 /**
  * Core type definitions for the Universal Module System (UMS)
@@ -39,9 +41,14 @@ export interface UIFlavour {
  * Optional overrides for a specific modal schema within a submodule context
  */
 export interface SubmoduleModalOverride {
+  /** Override the default prompt template for question generation */
   generationPromptOverride?: string;
+  /** Override the default prompt template for answer marking */
   markingPromptOverride?: string;
+  /** Override the UI component used for this specific submodule/modal combination */
   uiComponentOverride?: string;
+  /** Specify allowed error types for error generation modals */
+  allowedErrorTypes?: CorrectIncorrectErrorType[]; 
 }
 
 /**
@@ -67,8 +74,11 @@ export interface SubmoduleDefinition {
   supportedModalSchemaIds: string[];
   /** Optional context specific to this submodule to pass to AI prompts */
   submoduleContext?: string | Record<string, any>; // Added for passing context
-  /** Optional overrides for specific modal schemas */
-  overrides?: Record<string, SubmoduleModalOverride>; // Key is modalSchemaId
+  /** 
+   * Optional overrides for specific modal schemas within this submodule. 
+   * These take precedence over module-level overrides.
+   */
+  overrides?: Record<string, Partial<SubmoduleModalOverride>>; // Use Partial<> 
   /** Optional array of help resources for this submodule */
   helpers?: HelperResource[];
 }
@@ -83,10 +93,19 @@ export interface ModuleDefinition {
   title_en: string;
   /** Languages where this module's concept is relevant */
   supportedSourceLanguages: string[];
+  /** Languages this specific module definition provides content/logic for */
+  supportedTargetLanguages: string[];
   /** Translated titles and other text by language code */
   localization: Record<string, { title: string }>;
+  /** 
+   * Optional overrides for specific modal schemas applicable to ALL submodules 
+   * within this module definition. Submodule overrides take precedence.
+   */
+  moduleOverrides?: Record<string, Partial<SubmoduleModalOverride>>; // Add module-level overrides
   /** The specific aspects or variations within this module */
   submodules: SubmoduleDefinition[];
+  /** Optional array of help resources for this module */
+  helpers?: HelperResource[];
 }
 
 /**

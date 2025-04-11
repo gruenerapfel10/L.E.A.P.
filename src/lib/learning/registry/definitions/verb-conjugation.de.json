@@ -1,7 +1,8 @@
 {
-  "id": "verb-conjugation.de",
-  "title_en": "Verb Conjugation (German - Present Tense)",
+  "id": "verb-conjugation",
+  "title_en": "Verb Conjugation (Present Tense)",
   "supportedSourceLanguages": ["en"],
+  "supportedTargetLanguages": ["de"],
   "localization": {
     "de": {
       "title": "Verbkonjugation (Präsens)"

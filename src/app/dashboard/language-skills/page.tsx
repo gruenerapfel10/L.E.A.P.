@@ -10,6 +10,9 @@ import { getUser } from './actions'; // Import the server action
 import { redirect } from 'next/navigation'; // Keep for redirection if needed
 import { statisticsService, ModulePerformance } from '@/lib/learning/statistics/statistics.service'; // Import service and type
 import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.service'; // Import modal registry
+import { createClient } from '@/lib/supabase/server';
+import { TargetLanguageSelector } from '@/components/learning/target-language-selector';
+import { supportedLngs } from '@/lib/i18n';
 
 interface LanguageModule {
   id: string;
@@ -127,27 +130,55 @@ export default async function LanguageSkillsPage() {
   // Initialize *both* registries reliably before use
   await Promise.all([
       moduleRegistryService.initialize(),
-      modalSchemaRegistryService.initialize(), // Add modal registry initialization
+      modalSchemaRegistryService.initialize(),
   ]);
-  console.log("Registries initialized for LanguageSkillsPage."); // Add log for confirmation
+  console.log("Registries initialized for LanguageSkillsPage.");
 
-  const modules = moduleRegistryService.getAllModules();
+  const moduleConcepts = moduleRegistryService.getUniqueModuleConcepts();
   
-  const user = await getUser();
+  // Get user and their profile data
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
   if (!user) {
     redirect('/login');
   }
+  
   console.log(`LanguageSkillsPage: User found - ${user.id}`);
+  
+  // Fetch user profile to get language preferences
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('native_language, target_language')
+    .eq('id', user.id)
+    .single();
+    
+  if (profileError) {
+    console.error("Error fetching user profile:", profileError);
+  }
+  
+  // Get language preferences with fallbacks
+  const userLanguage = profile?.native_language || 'en';
+  const targetLanguage = profile?.target_language || 'de';
+  
+  // Filter module concepts based on source and target language support
+  const supportedConcepts = moduleConcepts.filter(concept => 
+    concept.supportedSourceLanguages?.includes(userLanguage) &&
+    concept.supportedTargetLanguages?.includes(targetLanguage)
+  );
+  
+  console.log(`Found ${supportedConcepts.length} module concepts supporting ${userLanguage} -> ${targetLanguage}`);
 
-  // Fetch performance data for all modules in parallel
+  // Fetch performance data only for the IDs of the supported concepts
+  const supportedModuleIds = supportedConcepts.map(c => c.id);
   const performanceData: Record<string, ModulePerformance | null> = {}; // Allow null for error cases
   try {
-      const performancePromises = modules.map(module => 
-          statisticsService.getUserModulePerformance(user.id, module.id)
-            .then(perf => ({ moduleId: module.id, performance: perf }))
+      const performancePromises = supportedModuleIds.map(moduleId => 
+          statisticsService.getUserModulePerformance(user.id, moduleId)
+            .then(perf => ({ moduleId: moduleId, performance: perf }))
             .catch(err => {
-                console.error(`Failed to fetch performance for module ${module.id}:`, err);
-                return { moduleId: module.id, performance: null }; // Handle errors gracefully
+                console.error(`Failed to fetch performance for module ${moduleId}:`, err);
+                return { moduleId: moduleId, performance: null }; // Handle errors gracefully
             })
       );
       const results = await Promise.all(performancePromises);
@@ -158,32 +189,37 @@ export default async function LanguageSkillsPage() {
       });
   } catch (error) {
       console.error("Error fetching module performances:", error);
-      // Handle overall fetch error if necessary
   }
-  
-  // Define languages (consider fetching user preferences later)
-  const userLanguage = 'en'; 
-  const targetLanguage = 'de';
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Language Skills</h1>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-4">
+          <TargetLanguageSelector currentTargetLanguage={targetLanguage} userId={user.id} />
+          <LanguageSwitcher />
+        </div>
       </div>
       <p className="text-muted-foreground">
         Explore available language modules and start learning!
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {modules.map((module) => (
-          <ModuleCard 
-            key={module.id}
-            module={module}
-            userLanguage={userLanguage}
-            targetLanguage={targetLanguage}
-            performance={performanceData[module.id] || null} 
-          />
-        ))}
+        {supportedConcepts.length > 0 ? (
+          supportedConcepts.map((concept) => (
+            <ModuleCard 
+              key={concept.id}
+              moduleConcept={concept}
+              userLanguage={userLanguage}
+              targetLanguage={targetLanguage}
+              performance={performanceData[concept.id] || null} 
+            />
+          ))
+        ) : (
+          <div className="col-span-3 text-center py-8">
+            <p className="text-muted-foreground mb-4">No modules available for your selected languages.</p>
+            <p>Try changing your language preferences.</p>
+          </div>
+        )}
       </div>
     </div>
   );

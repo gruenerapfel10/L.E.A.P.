@@ -1,7 +1,8 @@
 {
-  "id": "adjective-declension.de",
+  "id": "adjective-declension",
   "title_en": "Adjective Declension (German)",
   "supportedSourceLanguages": ["en", "fr", "es", "it"],
+  "supportedTargetLanguages": ["de"],
   "localization": {
     "de": {
       "title": "Adjektiv Deklination"

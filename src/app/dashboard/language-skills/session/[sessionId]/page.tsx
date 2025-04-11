@@ -18,7 +18,7 @@ import { DebugMenu } from '@/components/learning/debug-menu';
 import { StatCard } from '@/components/learning/stat-card';
 import { WritingCorrectIncorrectSentence } from '@/components/learning/interactions/WritingCorrectIncorrectSentence';
 import { HelperSidePanel } from '@/components/learning/HelperSidePanel';
-import { ModuleDefinition, SubmoduleDefinition } from '@/lib/learning/types';
+import { ModuleDefinition, SubmoduleDefinition, HelperResource } from '@/lib/learning/types';
 import { TabSystem, type LayoutNode } from '@/components/learning/TabSystem';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -182,21 +182,7 @@ export default function SessionPage({ params }: SessionPageProps) {
     // Removed `layout` from dependency array to prevent potential loops
   }, [state.isLoading, state.currentQuestionData]); 
 
-  // Prepare the context data for the chat
-  const chatContextBody = {
-    module: state.currentModule ? { id: state.currentModule.id, title: state.currentModule.title_en } : null,
-    submodule: state.currentSubmodule ? { id: state.currentSubmodule.id, title: state.currentSubmodule.title_en } : null,
-    currentQuestionData: state.currentQuestionData,
-    userAnswer: state.userAnswer,
-    isAnswered: state.isAnswered,
-    markResult: state.markResult,
-    sessionStats: {
-      correctCount: state.sessionCorrectCount,
-      totalAnswered: state.sessionTotalAnswered
-    }
-  };
-
-  // Lift useChat hook here
+  // Use the minimal body in the useChat hook
   const { 
     messages: chatMessages, 
     input: chatInput, 
@@ -208,12 +194,12 @@ export default function SessionPage({ params }: SessionPageProps) {
     stop: stopChat
   } = useChat({
     api: '/api/chat',
-    body: chatContextBody, // Pass context
-    // Keep messages in state across renders
-    // initialMessages could be fetched if needed, but useChat handles history if backend provides it
+    // Add initial message containing the sessionId (ensure state.sessionId is available)
+    initialMessages: state.sessionId ? [
+      { id: 'init-session', role: 'system', content: `SESSION_ID::${state.sessionId}` }
+    ] : [],
     onError: (err) => {
       console.error("[Session Page Chat Error]", err);
-      // Consider adding user-facing error display here if needed
     },
   });
 
@@ -579,59 +565,76 @@ export default function SessionPage({ params }: SessionPageProps) {
        <div className="h-9 flex items-center px-3">
         <h3 className="modern-text-base font-bold">Session Stats</h3>
       </div>
-      <div className="flex-1 flex flex-col p-1.5 gap-1.5">
-        <div className={cn(
-          "relative flex-1 rounded-lg p-3",
-          "bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5",
-          "border border-primary/10",
-          "hover:from-primary/10 hover:via-primary/15 hover:to-primary/10",
-          "transition-all duration-300",
-          "glass"
-        )}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.1),transparent_50%)]"></div>
-          <div className="relative z-10 flex flex-col items-center justify-center h-full">
-            <div className="display-text text-primary mb-0.5">{accuracy}%</div>
-            <div className="modern-text-sm text-muted-foreground">Accuracy</div>
-            <div className="modern-text-xs text-muted-foreground">
-              {state.sessionCorrectCount}/{state.sessionTotalAnswered} correct
+      <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6 min-h-0">
+        <div className="relative w-full h-full max-w-[400px] max-h-[400px] min-w-[300px] min-h-[300px]">
+          {/* Ambient glow effect */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-transparent animate-pulse-slow" />
+          
+          {/* Outer ring glow */}
+          <div className="absolute inset-0 rounded-full border-2 border-primary/10 animate-pulse" />
+          
+          {/* Full pie chart with enhanced gradient */}
+          <div 
+            className="absolute inset-0 rounded-full transform transition-all duration-1000 ease-out"
+            style={{
+              background: `conic-gradient(
+                from 0deg,
+                #10B981 0% ${accuracy}%,
+                #EF4444 ${accuracy}% 100%
+              )`,
+              boxShadow: '0 0 30px rgba(16, 185, 129, 0.15)'
+            }}
+          />
+          
+          {/* Center circle with enhanced effects */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-[60%] h-[60%] rounded-full bg-gradient-to-br from-background/95 via-background/90 to-background/80 backdrop-blur-lg flex flex-col items-center justify-center shadow-2xl transform transition-all duration-300 hover:scale-105">
+              {/* Inner glow */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/10 to-transparent" />
+              
+              {/* Content */}
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="text-4xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent animate-fade-in">
+                  {accuracy}%
+                </div>
+                <div className="text-sm text-muted-foreground mt-1 font-medium">Accuracy</div>
+              </div>
             </div>
           </div>
+
+          {/* Animated border */}
+          <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-spin-slow" />
         </div>
 
-        <div className="flex-1 flex gap-1.5">
-          <div className={cn(
-            "relative flex-1 rounded-lg p-3",
-            "bg-gradient-to-br from-green-500/5 via-green-500/10 to-green-500/5",
-            "border border-green-500/10",
-            "hover:from-green-500/10 hover:via-green-500/15 hover:to-green-500/10",
-            "transition-all duration-300",
-            "glass"
-          )}>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,197,94,0.1),transparent_50%)]"></div>
-            <div className="relative z-10 flex flex-col items-center justify-center h-full">
-              <div className="modern-text-xl font-bold text-green-500 mb-0.5">{state.sessionCorrectCount}</div>
-              <div className="modern-text-xs text-muted-foreground">Correct</div>
+        {/* Stats below the chart with enhanced styling */}
+        <div className="flex flex-col items-center gap-4 mt-4">
+          <div className="flex gap-8">
+            <div className="flex items-center gap-2 group">
+              <div className="relative w-3 h-3">
+                <div className="absolute inset-0 rounded-full bg-green-500/20 animate-ping-slow" />
+                <div className="absolute inset-0 rounded-full bg-green-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-green-500 transition-colors">
+                {state.sessionCorrectCount} Correct
+              </span>
+            </div>
+            <div className="flex items-center gap-2 group">
+              <div className="relative w-3 h-3">
+                <div className="absolute inset-0 rounded-full bg-red-500/20 animate-ping-slow" />
+                <div className="absolute inset-0 rounded-full bg-red-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-red-500 transition-colors">
+                {incorrectCount} Incorrect
+              </span>
             </div>
           </div>
-
-          <div className={cn(
-            "relative flex-1 rounded-lg p-3",
-            "bg-gradient-to-br from-red-500/5 via-red-500/10 to-red-500/5",
-            "border border-red-500/10",
-            "hover:from-red-500/10 hover:via-red-500/15 hover:to-red-500/10",
-            "transition-all duration-300",
-            "glass"
-          )}>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(239,68,68,0.1),transparent_50%)]"></div>
-            <div className="relative z-10 flex flex-col items-center justify-center h-full">
-              <div className="modern-text-xl font-bold text-red-500 mb-0.5">{incorrectCount}</div>
-              <div className="modern-text-xs text-muted-foreground">Incorrect</div>
-            </div>
+          <div className="text-sm text-muted-foreground bg-background/50 px-4 py-2 rounded-full backdrop-blur-sm border border-border/10 shadow-sm">
+            Total Questions: {state.sessionTotalAnswered}
           </div>
         </div>
       </div>
     </div>
-  ), [state.sessionCorrectCount, state.sessionTotalAnswered, accuracy, incorrectCount]); // Dependencies
+  ), [state.sessionCorrectCount, state.sessionTotalAnswered, accuracy, incorrectCount]);
 
   // --- Define getContentForTab function --- 
   const getContentForTab = useCallback((tabId: string): React.ReactNode => {

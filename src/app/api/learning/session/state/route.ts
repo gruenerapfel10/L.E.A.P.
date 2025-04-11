@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     const firstEvent = sessionData.user_session_events[0];
 
     // 3. Get Submodule and Modal Schema details for titles/UI component
-    const moduleDef = moduleRegistryService.getModule(sessionData.module_id);
+    const moduleDef = moduleRegistryService.getModule(sessionData.module_id, sessionData.target_language);
     const submoduleDef = moduleDef?.submodules.find(sub => sub.id === firstEvent.submodule_id);
     const modalSchemaDef = modalSchemaRegistryService.getSchema(firstEvent.modal_schema_id);
 

@@ -27,25 +27,23 @@ interface PickerStrategy {
  */
 class RandomStrategy implements PickerStrategy {
   async pickNext(params: PickNextParams): Promise<PickResult> {
-    const { moduleId } = params;
+    const { moduleId, targetLanguage } = params;
     
-    // Get the module definition
-    const module = moduleRegistryService.getModule(moduleId);
-    if (!module || module.submodules.length === 0) {
-      throw new Error(`Module not found or has no submodules: ${moduleId}`);
+    // Get the module definition for the specific target language
+    const module = moduleRegistryService.getModule(moduleId, targetLanguage);
+    if (!module || !module.submodules || module.submodules.length === 0) {
+      throw new Error(`Module not found or has no submodules for ID ${moduleId} and language ${targetLanguage}`);
     }
     
     // Randomly select a submodule
     const submoduleIndex = Math.floor(Math.random() * module.submodules.length);
     const submodule = module.submodules[submoduleIndex];
     
-    // --- RESTORED: Original random selection --- 
-    if (!submodule.supportedModalSchemaIds || submodule.supportedModalSchemaIds.length === 0) {
-      throw new Error(`Submodule ${submodule.id} has no supported modal schemas.`);
+    if (!submodule || !submodule.supportedModalSchemaIds || submodule.supportedModalSchemaIds.length === 0) {
+      throw new Error(`Submodule ${submodule?.id || 'unknown'} has no supported modal schemas.`);
     }
     const schemaIndex = Math.floor(Math.random() * submodule.supportedModalSchemaIds.length);
     const modalSchemaId = submodule.supportedModalSchemaIds[schemaIndex];
-    // --- END RESTORED --- 
     
     return {
       submoduleId: submodule.id,
@@ -107,11 +105,13 @@ export class PickerAlgorithmService {
    * Get the next submodule and modal schema ID to show
    */
   async getNextStep(params: PickNextParams): Promise<PickResult> {
-    // Ensure registries are ready (simple check, might need more robust handling)
-    if (!moduleRegistryService.getAllModules().length) await moduleRegistryService.initialize();
-    if (!modalSchemaRegistryService.getAllSchemas().length) await modalSchemaRegistryService.initialize();
-
-    return this.strategies[this.activeStrategy].pickNext(params);
+    // Ensure the selected strategy exists
+    const strategy = this.strategies[this.activeStrategy];
+    if (!strategy) {
+        console.error(`Active strategy '${this.activeStrategy}' not found. Falling back to random.`);
+        return this.strategies['random'].pickNext(params); 
+    }
+    return strategy.pickNext(params);
   }
 }
 

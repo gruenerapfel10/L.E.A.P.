@@ -13,7 +13,8 @@ const AiMarkingResultSchema = z.object({
   isCorrect: z.boolean().describe("Whether the user's answer was correct."),
   score: z.number().min(0).max(100).describe("A score from 0 to 100."),
   feedback: z.string().describe("Feedback for the user, explaining the result."),
-  correctAnswer: z.string().optional().describe("The correct answer or relevant correct segment, if the user was wrong.")
+  // Require a string, but instruct AI to return empty string if no correction needed
+  correctAnswer: z.string().describe("The correct answer or relevant correct segment if the user was wrong. Return an empty string (\"\") if no specific correction applies (e.g., user was correct or task type is confirm).")
 });
 export type AiMarkingResult = z.infer<typeof AiMarkingResultSchema>;
 
@@ -57,17 +58,30 @@ export class MarkingService {
     console.log(`Marking answer: Module=${moduleId}, Submodule=${submoduleId}, Schema=${modalSchemaId}`);
     
     // Get module and submodule definitions
-    const module = moduleRegistryService.getModule(moduleId);
-    if (!module) throw new Error(`Module not found: ${moduleId}`);
+    const module = moduleRegistryService.getModule(moduleId, targetLanguage);
+    if (!module) throw new Error(`Module not found: ${moduleId} for language ${targetLanguage}`);
     
     const submodule = module.submodules.find(sub => sub.id === submoduleId);
     if (!submodule) throw new Error(`Submodule not found: ${submoduleId} in module ${moduleId}`);
 
-    // Get the modal schema definition
     const modalSchema = modalSchemaRegistryService.getSchema(modalSchemaId);
-    if (!modalSchema) throw new Error(`Modal schema not found: ${modalSchemaId}`);
+    if (!modalSchema) throw new Error(`Modal Schema not found: ${modalSchemaId}`);
 
-    // --- Simple Marking Logic (Bypass AI if possible) ---
+    // --- Resolve Overrides (Submodule > Module > Modal Default) --- 
+    const submoduleOverride = submodule.overrides?.[modalSchemaId];
+    const moduleOverride = module.moduleOverrides?.[modalSchemaId]; // Use moduleOverrides
+    const modalDefault = modalSchema.markingConfig;
+
+    // Determine final marking prompt template
+    const promptTemplate = 
+        submoduleOverride?.markingPromptOverride ?? 
+        moduleOverride?.markingPromptOverride ?? 
+        modalDefault.promptTemplate;
+
+    // TODO: Potentially resolve other markingConfig overrides (like zodSchema) if needed
+    // const finalZodSchemaString = submoduleOverride?.markingZodSchemaOverride ?? moduleOverride?.markingZodSchemaOverride ?? modalDefault.zodSchema;
+
+    // --- 2. Handle Specific Marking Logic (if any) --- 
     // Can be expanded for different schema IDs if they have deterministic marking
     if (modalSchemaId === 'multiple-choice' && questionData.correctOptionIndex !== undefined && typeof userAnswer === 'number') {
         console.log("Using simple multiple-choice marking.");
@@ -79,13 +93,22 @@ export class MarkingService {
     }
     // Add more simple markers here (e.g., strict fill-in-gap without AI check)
 
-    // --- AI Marking Logic --- 
+    // --- 3. General AI-based Marking --- 
     if (DEBUG_MARKING) console.log("[Marker Debug] Using AI marking.");
-    const override = submodule.overrides?.[modalSchemaId];
-    const promptTemplate = override?.markingPromptOverride || modalSchema.markingConfig.promptTemplate;
+    // Use the resolved promptTemplate
+    // const override = submodule.overrides?.[modalSchemaId]; // REMOVED
+    // const markingConfig = override?.markingConfigOverride || modalSchema.markingConfig; // REMOVED
 
-    // Prepare context for placeholder replacement
-    const markingContext = {
+    // Check if a valid prompt template was resolved
+    if (!promptTemplate) { // Removed check for zodSchema here as we parse it later
+      console.warn(`Marking prompt template missing for ${modalSchemaId}. Returning default incorrect.`);
+      return { isCorrect: false, score: 0, feedback: "Marking configuration not found.", correctAnswer: "" };
+    }
+    
+    // Use the standard AiMarkingResultSchema defined in this service
+    const zodSchemaToUse = AiMarkingResultSchema;
+    
+    const promptContext = {
       targetLanguage,
       sourceLanguage,
       questionDataJSON: JSON.stringify(questionData), 
@@ -100,13 +123,13 @@ export class MarkingService {
     };
 
     // Replace placeholders
-    console.log("[Marking Service] Context before replace:", markingContext);
-    const prompt = this.replacePlaceholders(promptTemplate, markingContext);
+    console.log("[Marking Service] Context before replace:", promptContext);
+    const prompt = this.replacePlaceholders(promptTemplate, promptContext);
     console.log("[Marking Service] Prompt after replace:", prompt); // Log the final prompt
     
     try {
-        // Pass the Zod schema OBJECT to the AI service
-        const markData: AiMarkingResult | null = await aiService.generateStructuredData(prompt, AiMarkingResultSchema);
+        // Pass the Zod schema OBJECT and a schema name to the AI service
+        const markData: AiMarkingResult | null = await aiService.generateStructuredData(prompt, zodSchemaToUse, 'AiMarkingResultSchema');
         
         if (DEBUG_MARKING) console.log("[Marker Debug] Received markData from AI:", markData);
 

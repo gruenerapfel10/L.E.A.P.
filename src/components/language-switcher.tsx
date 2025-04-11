@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Languages, ChevronDown, Check } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const languageNames: Record<string, string> = {
   en: 'English',
@@ -22,6 +25,32 @@ const languageNames: Record<string, string> = {
 
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
+  const supabase = createClient();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load the UI language from the user profile on mount
+  useEffect(() => {
+    const loadUserLanguage = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('ui_language')
+            .eq('id', user.id)
+            .single();
+            
+          if (data?.ui_language && !error) {
+            i18n.changeLanguage(data.ui_language);
+          }
+        } catch (error) {
+          console.error("Error loading user language preference:", error);
+        }
+      }
+    };
+    
+    loadUserLanguage();
+  }, [supabase, i18n]);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -33,6 +62,37 @@ export function LanguageSwitcher() {
     { code: 'pt', name: 'Português' },
   ];
 
+  const handleLanguageChange = async (langCode: string) => {
+    setIsLoading(true);
+    try {
+      // Change i18n language for UI
+      i18n.changeLanguage(langCode);
+      
+      // Save language preference to user profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            ui_language: langCode, 
+            native_language: langCode 
+          })
+          .eq('id', user.id);
+          
+        if (error) {
+          throw error;
+        }
+        
+        toast.success(`Language changed to ${languageNames[langCode]}`);
+      }
+    } catch (error) {
+      console.error("Error saving language preference:", error);
+      toast.error("Failed to save language preference");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -40,6 +100,7 @@ export function LanguageSwitcher() {
           variant="ghost" 
           size="sm"
           className="text-foreground/80 hover:text-primary hover:bg-white/[0.02] dark:hover:bg-white/[0.02]"
+          disabled={isLoading}
         >
           <Languages className="h-4 w-4 mr-2" />
           <span className="text-sm">{languageNames[i18n.language] || 'English'}</span>
@@ -50,7 +111,7 @@ export function LanguageSwitcher() {
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
+            onClick={() => handleLanguageChange(lang.code)}
             className="flex items-center justify-between cursor-pointer"
           >
             <span>{lang.name}</span>
