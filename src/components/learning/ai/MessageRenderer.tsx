@@ -3,7 +3,8 @@
 import React from 'react';
 import ReactMarkdown, { Options } from 'react-markdown';
 import remarkMath from 'remark-math';
-import { InlineMath, BlockMath } from 'react-katex';
+import InlineMath from '@matejmazur/react-katex';
+import BlockMath from '@matejmazur/react-katex';
 import 'katex/dist/katex.min.css'; // Import KaTeX CSS
 import { cn } from '@/lib/utils';
 
