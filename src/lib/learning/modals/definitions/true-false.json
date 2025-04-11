@@ -1,0 +1,17 @@
+{
+  "id": "true-false",
+  "interactionType": "reading",
+  "title_en": "True or False",
+  "localization": {
+    "de": { "title": "Richtig oder Falsch" },
+    "en": { "title": "True or False" }
+  },
+  "generationConfig": {
+    "promptTemplate": "Based on the context '{submoduleContext}', first generate a grammatically correct example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the following words: {requiredVocabList}, and adhere to these structural constraints: {structuralConstraintsDescription}. THEN, using that generated sentence, create a true/false statement about it. Indicate the correct boolean answer. Format the output as JSON matching the required schema for a true/false question. Source language for context is {sourceLanguage}."
+  },
+  "markingConfig": {
+    "promptTemplate": "The user was presented with the statement: \"{statement}\". They answered: {userAnswer} (true/false). The correct answer is {isCorrectAnswerTrue}. Explain why the statement is true or false based on the context, especially if the user was incorrect.",
+    "zodSchema": "{\"type\":\"object\",\"properties\":{\"isCorrect\":{\"type\":\"boolean\"},\"score\":{\"type\":\"number\"},\"feedback\":{\"type\":\"string\"},\"correctAnswer\":{\"type\":\"boolean\"}},\"required\":[\"isCorrect\",\"score\",\"feedback\"]}" 
+  },
+  "uiComponent": "ReadingTrueFalse"
+} 

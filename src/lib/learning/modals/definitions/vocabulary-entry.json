@@ -1,0 +1,14 @@
+{
+  "id": "vocabulary-entry",
+  "title_en": "Vocabulary Entry Generation",
+  "localization": {},
+  "generationConfig": {
+    "promptTemplate": "Generate a vocabulary entry for the {language} word \"{word}\". Provide a concise definition in English and translations for the following languages: en, de, es, fr, it, ja, pt. If a direct translation isn't common or appropriate, provide a short phrase or explanation in that language. Format the output as JSON matching the schema.",
+    "zodSchema": "{\"type\":\"object\",\"properties\":{\"definition\":{\"type\":\"string\", \"description\":\"Concise definition of the word in English.\"},\"translations\":{\"type\":\"object\",\"properties\":{\"en\":{\"type\":\"string\"},\"de\":{\"type\":\"string\"},\"es\":{\"type\":\"string\"},\"fr\":{\"type\":\"string\"},\"it\":{\"type\":\"string\"},\"ja\":{\"type\":\"string\"},\"pt\":{\"type\":\"string\"}},\"required\":[\"en\",\"de\",\"es\",\"fr\",\"it\",\"ja\",\"pt\"]}},\"required\":[\"definition\",\"translations\"]}"
+  },
+  "markingConfig": { 
+      "promptTemplate": "N/A - Marking not applicable for this schema",
+      "zodSchema": "{}" 
+  },
+  "uiComponent": "N/A"
+} 

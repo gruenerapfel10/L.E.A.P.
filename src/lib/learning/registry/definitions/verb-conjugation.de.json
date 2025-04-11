@@ -1,0 +1,34 @@
+{
+  "id": "verb-conjugation.de",
+  "title_en": "Verb Conjugation (German - Present Tense)",
+  "supportedSourceLanguages": ["en"],
+  "localization": {
+    "de": {
+      "title": "Verbkonjugation (Präsens)"
+    },
+    "en": {
+      "title": "Verb Conjugation (Present Tense)"
+    }
+  },
+  "submodules": [
+    {
+      "id": "regular-verbs",
+      "title_en": "Regular Verbs",
+      "localization": {
+        "de": {
+          "title": "Regelmäßige Verben"
+        }
+      },
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap"],
+      "submoduleContext": "This submodule focuses on conjugating common regular German verbs (e.g., machen, spielen, lernen, wohnen, arbeiten, kaufen) in the present tense.",
+      "overrides": {
+        "multiple-choice": {
+          "generationPromptOverride": "Generate a multiple-choice question testing German present tense conjugation for the regular verb '{verb}'. Provide the infinitive, a subject pronoun, and a sentence context with a gap. Offer 4 options. Prioritize verbs: machen, spielen, lernen, wohnen. Target: {targetLanguage}, Difficulty: {difficulty}. Use this context: {submoduleContext}"
+        },
+        "fill-in-gap": {
+          "generationPromptOverride": "Generate a fill-in-the-gap question for a regular German verb (e.g., machen, spielen, lernen) in the present tense. Provide a sentence with a blank `___` for the conjugated verb and the subject. Sentence must relate to the context: {submoduleContext}. Target: {targetLanguage}, Difficulty: {difficulty}."
+        }
+      }
+    }
+  ]
+} 

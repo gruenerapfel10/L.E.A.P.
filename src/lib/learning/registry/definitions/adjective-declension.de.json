@@ -1,0 +1,120 @@
+{
+  "id": "adjective-declension.de",
+  "title_en": "Adjective Declension (German)",
+  "supportedSourceLanguages": ["en", "fr", "es", "it"],
+  "localization": {
+    "de": {
+      "title": "Adjektiv Deklination"
+    },
+    "en": {
+      "title": "Adjective Declension"
+    }
+  },
+  "submodules": [
+    {
+      "id": "nach-bestimmte-artikel",
+      "title_en": "After Definite Articles",
+      "localization": {
+        "de": {
+          "title": "Nach bestimmte Artikel"
+        }
+      },
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "sentence-error-identify", "sentence-error-replace"],
+      "submoduleContext": "Focuses on adjective endings after definite articles (der, die, das, etc.) in different cases (Nominative, Accusative, Dative, Genitive).",
+      "overrides": {
+        "multiple-choice": {
+          "generationPromptOverride": "Primary task: Generate a CORRECT example sentence... demonstrating an ATTRIBUTIVE adjective after a DEFINITE article... **SECOND Requirement: MUST use these words: {requiredVocabList}.** Adhere to structure... AFTER generating the sentence: Generate `question`... Put **COMPLETE** sentence in `sentence` field. Put adjective base form in `targetWordBase`. Provide 4 distinct adjective **ENDING** options (e.g., 'e', 'en'). **DO NOT provide verbs as options.** Format JSON..."
+        },
+        "fill-in-gap": {
+          "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE word relevant to the context (preferably an adjective or article) with '___'. Provide the sentence template and the correct answer. Format the output as JSON. Source language for context: {sourceLanguage}."
+        },
+        "true-false": {
+           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a TRUE/FALSE statement about the adjective declension rules demonstrated. Format the output as JSON. Source language for context: {sourceLanguage}."
+        },
+        "sentence-error-identify": {
+            "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
+        },
+        "sentence-error-replace": {
+            "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
+        }
+      },
+      "helpers": [
+        {
+          "title": "Weak Declension Table (After Definite Articles)",
+          "contentType": "markdown",
+          "content": "| Case       | Masculine | Neuter    | Feminine  | Plural    |\n|------------|-----------|-----------|-----------|-----------|\n| Nominative | **-e**    | **-e**    | **-e**    | -en       |\n| Accusative | -en       | **-e**    | **-e**    | -en       |\n| Dative     | -en       | -en       | -en       | -en       |\n| Genitive   | -en       | -en       | -en       | -en       |\n\n*(Remember the \"Oklahoma\" pattern for the **-e** endings!)*"
+        }
+      ]
+    },
+    {
+      "id": "nach-unbestimmte-artikel",
+      "title_en": "After Indefinite Articles",
+      "localization": {
+        "de": {
+          "title": "Nach unbestimmte Artikel"
+        }
+      },
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "sentence-error-identify", "sentence-error-replace"],
+      "submoduleContext": "Focuses on adjective endings after indefinite articles (ein, eine, einen, etc.) and possessive determiners (mein, dein, sein, etc.) in different cases.",
+       "overrides": {
+        "multiple-choice": {
+          "generationPromptOverride": "Primary task: Generate a CORRECT example sentence... demonstrating an ATTRIBUTIVE adjective after an INDEFINITE article/POSSESSIVE... **SECOND Requirement: MUST use these words: {requiredVocabList}.** Adhere to structure... AFTER generating the sentence: Generate `question`... Put **COMPLETE** sentence in `sentence` field. Put adjective base form in `targetWordBase`. Provide 4 distinct adjective **ENDING** options. **DO NOT provide verbs as options.** Format JSON..."
+        },
+        "fill-in-gap": {
+          "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE word relevant to the context (preferably an adjective or article) with '___'. Provide the sentence template and the correct answer. Format the output as JSON. Source language for context: {sourceLanguage}."
+        },
+         "true-false": {
+           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a TRUE/FALSE statement about the adjective declension rules demonstrated. Format the output as JSON. Source language for context: {sourceLanguage}."
+        },
+        "sentence-error-identify": {
+            "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
+        },
+        "sentence-error-replace": {
+            "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
+        }
+      },
+      "helpers": [
+        {
+          "title": "Mixed Declension Table (After Indefinite Articles)",
+          "contentType": "markdown",
+          "content": "| Case       | Masculine | Neuter    | Feminine  | Plural    |\n|------------|-----------|-----------|-----------|-----------|\n| Nominative | **-er**   | **-es**   | **-e**    | -en       |\n| Accusative | -en       | **-es**   | **-e**    | -en       |\n| Dative     | -en       | -en       | -en       | -en       |\n| Genitive   | -en       | -en       | -en       | -en       |\n\n*(Note the strong endings -er/-es in the \"Oklahoma\" pattern where the indefinite article has no ending.)*"
+        }
+      ]
+    },
+    {
+      "id": "ohne-artikel",
+      "title_en": "Without Articles (Strong Declension)",
+      "localization": {
+        "de": {
+          "title": "Ohne Artikel (Starke Deklination)"
+        }
+      },
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "sentence-error-identify", "sentence-error-replace"],
+      "submoduleContext": "Focuses on adjective endings when there is no article before the adjective (strong declension), often used with plurals or certain prepositions.",
+      "overrides": {
+         "multiple-choice": {
+          "generationPromptOverride": "Primary task: Generate a CORRECT example sentence... demonstrating an ATTRIBUTIVE adjective with NO article... **SECOND Requirement: MUST use these words: {requiredVocabList}.** Adhere to structure... AFTER generating the sentence: Generate `question`... Put **COMPLETE** sentence in `sentence` field. Put adjective base form in `targetWordBase`. Provide 4 distinct adjective **ENDING** options. **DO NOT provide verbs as options.** Format JSON..."
+        },
+        "fill-in-gap": {
+          "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use NO article before the adjective (strong declension)**. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE word relevant to the context (preferably an adjective or article) with '___'. Provide the sentence template and the correct answer. Format the output as JSON. Source language for context: {sourceLanguage}."
+        },
+        "true-false": {
+           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use NO article before the adjective (strong declension)**. THEN, using that generated sentence, create a TRUE/FALSE statement about the adjective declension rules demonstrated. Format the output as JSON. Source language for context: {sourceLanguage}."
+        },
+        "sentence-error-identify": {
+            "allowedErrorTypes": ["ADJECTIVE_ENDING"]
+        },
+        "sentence-error-replace": {
+            "allowedErrorTypes": ["ADJECTIVE_ENDING"]
+        }
+      },
+      "helpers": [
+        {
+          "title": "Strong Declension Table (Without Articles)",
+          "contentType": "markdown",
+          "content": "| Case       | Masculine | Neuter    | Feminine  | Plural    |\n|------------|-----------|-----------|-----------|-----------|\n| Nominative | **-er**   | **-es**   | **-e**    | **-e**    |\n| Accusative | **-en**   | **-es**   | **-e**    | **-e**    |\n| Dative     | **-em**   | **-em**   | **-er**   | **-en**   |\n| Genitive   | **-en**   | **-en**   | **-er**   | **-er**   |\n\n*(Adjective takes the definite article endings, except for Genitive Masc/Neut where it's -en.)*"
+        }
+      ]
+    }
+  ]
+} 

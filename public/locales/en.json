@@ -1,0 +1,56 @@
+{
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "successStories": "Success Stories",
+    "login": "Login",
+    "getStarted": "Get Started"
+  },
+  "home": {
+    "heroTitle": "Master Languages",
+    "heroSubtitle": "Learn any language with our AI-powered platform. Start speaking confidently in weeks, not years.",
+    "startJourney": "Start Your Journey",
+    "learnMore": "Learn More"
+  },
+  "features": {
+    "sectionTitle": "Why Choose Us",
+    "sectionSubtitle": "Our platform combines cutting-edge technology with proven learning methods",
+    "feature1Title": "AI-Powered Learning",
+    "feature1Desc": "Get personalized lessons and instant feedback from our advanced AI tutor",
+    "feature2Title": "Real Conversations",
+    "feature2Desc": "Practice with native speakers through our interactive conversation platform",
+    "feature3Title": "Track Progress",
+    "feature3Desc": "Monitor your improvement with detailed analytics and insights"
+  },
+  "howItWorks": {
+    "sectionTitle": "How It Works",
+    "sectionSubtitle": "Start speaking a new language in just three simple steps",
+    "step1Title": "Choose Your Language",
+    "step1Desc": "Select from our wide range of supported languages",
+    "step2Title": "Take Assessment",
+    "step2Desc": "Complete a quick assessment to determine your starting level",
+    "step3Title": "Start Learning",
+    "step3Desc": "Begin your personalized learning journey with our AI tutor"
+  },
+  "testimonials": {
+    "sectionTitle": "Success Stories",
+    "sectionSubtitle": "See what our users have to say about their language learning journey",
+    "testimonial1Name": "Sarah Johnson",
+    "testimonial1Role": "Spanish Learner",
+    "testimonial1Quote": "I went from zero to conversational in just 3 months!",
+    "testimonial2Name": "Michael Chen",
+    "testimonial2Role": "French Learner",
+    "testimonial2Quote": "The AI tutor is amazing - it's like having a personal teacher 24/7",
+    "testimonial3Name": "Emma Wilson",
+    "testimonial3Role": "Japanese Learner",
+    "testimonial3Quote": "Finally found a platform that makes learning fun and effective"
+  },
+  "cta": {
+    "title": "Ready to Start Your Language Journey?",
+    "subtitle": "Join thousands of successful language learners today",
+    "button": "Get Started"
+  },
+  "footer": {
+    "rightsReserved": "All rights reserved"
+  }
+} 

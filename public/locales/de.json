@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "features": "Funktionen",
+    "howItWorks": "So funktioniert's",
+    "successStories": "Erfolgsgeschichten",
+    "login": "Anmelden",
+    "getStarted": "Jetzt starten"
+  },
+  "home": {
+    "revolutionizing": "Revolutionieren Sie das Sprachenlernen",
+    "heroTitle": "Beherrschen Sie Sprachen",
+    "heroSubtitle": "Lernen Sie jede Sprache mit unserer KI-gestützten Plattform. Beginnen Sie in Wochen, nicht in Jahren, sicher zu sprechen.",
+    "startJourney": "Starten Sie Ihre Reise",
+    "learnMore": "Mehr erfahren"
+  },
+  "features": {
+    "sectionTitle": "Warum uns wählen",
+    "sectionSubtitle": "Unsere Plattform kombiniert modernste Technologie mit bewährten Lernmethoden",
+    "feature1Title": "KI-gestütztes Lernen",
+    "feature1Desc": "Erhalten Sie personalisierte Lektionen und sofortiges Feedback von unserem fortschrittlichen KI-Tutor",
+    "feature2Title": "Echte Gespräche",
+    "feature2Desc": "Üben Sie mit Muttersprachlern über unsere interaktive Gesprächsplattform",
+    "feature3Title": "Fortschritt verfolgen",
+    "feature3Desc": "Überwachen Sie Ihre Verbesserung mit detaillierten Analysen und Einblicken"
+  },
+  "howItWorks": {
+    "sectionTitle": "So funktioniert's",
+    "sectionSubtitle": "Beginnen Sie in nur drei einfachen Schritten, eine neue Sprache zu sprechen",
+    "step1Title": "Wählen Sie Ihre Sprache",
+    "step1Desc": "Wählen Sie aus unserer breiten Palette unterstützter Sprachen",
+    "step2Title": "Machen Sie den Test",
+    "step2Desc": "Absolvieren Sie einen schnellen Test, um Ihr Ausgangsniveau zu bestimmen",
+    "step3Title": "Beginnen Sie zu lernen",
+    "step3Desc": "Beginnen Sie Ihre personalisierte Lernreise mit unserem KI-Tutor"
+  },
+  "testimonials": {
+    "sectionTitle": "Erfolgsgeschichten",
+    "sectionSubtitle": "Sehen Sie, was unsere Nutzer über ihre Sprachlernreise zu sagen haben",
+    "testimonial1Name": "Sarah Johnson",
+    "testimonial1Role": "Spanisch-Lernerin",
+    "testimonial1Quote": "Ich bin in nur 3 Monaten von Null auf Konversationsniveau gekommen!",
+    "testimonial2Name": "Michael Chen",
+    "testimonial2Role": "Französisch-Lerner",
+    "testimonial2Quote": "Der KI-Tutor ist fantastisch - es ist wie ein persönlicher Lehrer rund um die Uhr",
+    "testimonial3Name": "Emma Wilson",
+    "testimonial3Role": "Japanisch-Lernerin",
+    "testimonial3Quote": "Endlich eine Plattform gefunden, die Lernen spaßig und effektiv macht"
+  },
+  "cta": {
+    "title": "Bereit, Ihre Sprachreise zu beginnen?",
+    "subtitle": "Schließen Sie sich heute Tausenden erfolgreicher Sprachlerner an",
+    "button": "Jetzt starten"
+  },
+  "footer": {
+    "rightsReserved": "Alle Rechte vorbehalten"
+  }
+} 

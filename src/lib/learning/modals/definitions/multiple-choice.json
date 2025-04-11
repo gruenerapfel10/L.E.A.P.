@@ -1,0 +1,17 @@
+{
+  "id": "multiple-choice",
+  "interactionType": "reading",
+  "title_en": "Multiple Choice",
+  "localization": {
+    "de": { "title": "Multiple-Choice" },
+    "en": { "title": "Multiple Choice" }
+  },
+  "generationConfig": {
+    "promptTemplate": "Your primary task is to generate a grammatically CORRECT example sentence in {targetLanguage} ({difficulty} level) that **demonstrates an ATTRIBUTIVE adjective** (adjective directly before a noun) following the specific rules of the grammatical context '{submoduleContext}' (e.g., using definite articles if specified). **SECOND Requirement:** This sentence MUST incorporate these specific words: {requiredVocabList}. Ensure the sentence adheres to: {structuralConstraintsDescription}. AFTER generating the sentence: Generate a concise `question` (e.g., 'Welche Endung passt?'). Put the **COMPLETE** example sentence into the `sentence` field. Identify the base form of the **attributive adjective** used and put it in the `targetWordBase` field. Provide exactly 4 distinct options which MUST be potential German adjective **ENDINGS** (e.g., 'e', 'en', 'es', 'em', 'er'). **DO NOT provide verbs or other words as options.** Format the output as JSON matching the MultipleChoiceSchema, ensuring `correctOptionIndex` points to the correct ending based on the generated sentence's grammar. Source language: {sourceLanguage}."
+  },
+  "markingConfig": {
+    "promptTemplate": "The user was asked: \"{question}\". They were shown the sentence: \"{sentence}\". They chose ending \"{userAnswer}\" (option index {userAnswerIndex}). The correct ending was \"{correctAnswer}\" (option index {correctOptionIndex}). Briefly explain why the correct ending is right or the user's choice was wrong based on the sentence structure and the adjective declension rules for the submodule context '{submoduleContext}'. Keep feedback concise and helpful for a learner.",
+    "zodSchema": "{\"type\":\"object\",\"properties\":{\"isCorrect\":{\"type\":\"boolean\"},\"score\":{\"type\":\"number\"},\"feedback\":{\"type\":\"string\"},\"correctAnswer\":{\"type\":\"string\"}},\"required\":[\"isCorrect\",\"score\",\"feedback\"]}"
+  },
+  "uiComponent": "ReadingMultipleChoice"
+} 
