@@ -147,6 +147,16 @@ This file tracks the development tasks for the Leap learning platform.
 - [ ] Difficulty Level integration
 - [ ] Session history analysis
 - [ ] Internationalization (i18n) improvements
+- [ ] **Session Settings:**
+    - [x] ~~Create basic settings popover component.~~
+    - [ ] Implement session settings persistence.
+    - [ ] Add settings for:
+        - [ ] Font size adjustment
+        - [ ] Theme preferences
+        - [ ] Audio settings
+        - [ ] Keyboard shortcuts
+        - [ ] Session preferences (auto-submit, show hints, etc.)
+    - [ ] Add settings to user profile for persistence across sessions.
 - [ ] **Refactor AI Service:** Consider migrating `ai.service.ts` from native `@google/generative-ai` SDK to use the Vercel AI SDK (`@ai-sdk/google-generative-ai`) for provider abstraction.
 - [ ] **Submodule Help Resources:**
     - [x] ~~Define `HelperResource` type & add to `SubmoduleDefinition`.~~
@@ -178,6 +188,16 @@ This file tracks the development tasks for the Leap learning platform.
     -   [ ] Add toggle mechanism...
     -   [ ] Ensure `SentenceStructure` data is available...
     -   [ ] Modify `question-generation.service.ts` or session state logic...
+
+-   [x] **Floating Library Helper Sheet System:**
+    -   [x] Design new helper sheet architecture with prerequisites
+    -   [x] Create helper sheet registry and loader
+    -   [x] Create new FloatingHelperSheet component
+    -   [x] Create sample helper sheets for German grammar
+    -   [ ] Add more helper sheets for other grammar concepts
+    -   [ ] Add helper sheet search functionality
+    -   [ ] Add helper sheet tagging and filtering
+    -   [ ] Add helper sheet versioning and updates
 
 ## Architecture Overview
 
@@ -246,6 +266,52 @@ This section provides a high-level overview of the key components and data flow 
     *   Handles interactions with the `user_learning_sessions` and `user_session_events` tables.
     *   Starts/ends sessions, records events (including marking results).
     *   Provides methods to fetch user history and calculate performance statistics (e.g., `getUserModulePerformance`).
+
+10. **Helper Sheet Registry (`HelperSheetRegistry`):**
+    *   Manages a collection of helper sheets in the floating library system
+    *   Provides methods to register, retrieve, and manage helper sheets
+    *   Supports prerequisite relationships between helper sheets
+    *   Allows linking helper sheets to specific modules
+    *   Implemented as a singleton to ensure consistent state
+    *   Helper sheets are stored in JSON files in `src/lib/learning/helper-sheets/definitions/`
+    *   Each helper sheet has:
+        - Unique ID and title
+        - Markdown content
+        - Optional prerequisites (other helper sheet IDs)
+        - Optional module links
+        - Metadata (CEFR level, tags, last updated)
+
+**Helper Sheet System:**
+
+The floating library helper sheet system is a new approach to organizing and presenting help content:
+
+1. **Core Concepts:**
+   * **Helper Sheet:** A standalone document containing explanations, tables, and examples
+   * **Prerequisites:** Optional links to other helper sheets that should be read first
+   * **Module Links:** Optional connections to specific learning modules
+
+2. **Components:**
+   * **`FloatingHelperSheet`:** React component for displaying helper sheets
+   * **`HelperSheetRegistry`:** Service for managing helper sheets
+   * **`loadHelperSheets`:** Function to load helper sheets into registry
+
+3. **Features:**
+   * Navigation between related helper sheets
+   * Prerequisite tracking and suggestions
+   * Module-specific helper sheet recommendations
+   * CEFR level and tag-based organization
+
+4. **Benefits:**
+   * Decoupled from module structure
+   * Reusable across different modules
+   * Clear prerequisite relationships
+   * Easy to maintain and update
+
+5. **Future Improvements:**
+   * Search functionality
+   * Tag-based filtering
+   * Version control
+   * User progress tracking
 
 **API Routes:**
 

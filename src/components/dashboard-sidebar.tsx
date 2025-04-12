@@ -9,17 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { Icons } from "@/components/icons"; // Your icons component
-import { useState } from "react";
-import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 
 export type SidebarNavItem = {
   title: string;
@@ -27,6 +18,7 @@ export type SidebarNavItem = {
   icon: keyof typeof Icons;
   iconColor?: string;
   disabled?: boolean;
+  translatedTitle?: string;
 };
 
 interface DashboardSidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -43,27 +35,35 @@ interface DashboardSidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 export function DashboardSidebar({
   className,
   user,
-  navItems,
+  navItems: initialNavItems,
   isSheet = false,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const supabase = createClient();
   const router = useRouter();
-  // Collapse state only relevant for non-sheet version (desktop)
+  const { t, i18n } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [hydratedNavItems, setHydratedNavItems] = useState<SidebarNavItem[]>(initialNavItems);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Use collapsed state ONLY if not in sheet
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated && i18n.isInitialized) {
+      const translatedItems = initialNavItems.map(item => ({
+        ...item,
+        translatedTitle: t(`dashboard.nav.${item.title}`)
+      }));
+      setHydratedNavItems(translatedItems);
+    }
+  }, [isHydrated, initialNavItems, t, i18n.isInitialized]);
+
   const collapsed = !isSheet && isCollapsed;
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
-  };
-
+  
   const content = (
     <div className="flex h-full flex-col gap-2 bg-sidebar z-10">
-      {/* Top section with user profile and collapse button */}
       <div className={cn(
         "relative border-b border-border/80",
         collapsed ? "p-2" : "p-4"
@@ -89,7 +89,6 @@ export function DashboardSidebar({
           </div>
         ) : (
           <div className="flex items-center justify-between w-full">
-            {/* User Profile Grid */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Avatar className="h-10 w-10 shrink-0">
                 <AvatarFallback className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white relative overflow-hidden">
@@ -106,7 +105,6 @@ export function DashboardSidebar({
               </div>
             </div>
 
-            {/* Collapse Button */}
             {!isSheet && (
               <Button
                 variant="ghost"
@@ -121,7 +119,6 @@ export function DashboardSidebar({
         )}
       </div>
 
-      {/* Upgrade Button for Free Plan Users */}
       {user.plan === 'free' && !collapsed && (
         <div className="px-4 py-2">
           <Button
@@ -136,8 +133,9 @@ export function DashboardSidebar({
       
       <ScrollArea className="flex-1">
         <div className="space-y-1 p-2">
-          {navItems.map((item) => {
+          {hydratedNavItems.map((item) => {
             const Icon = Icons[item.icon];
+            const displayTitle = item.translatedTitle || t(`dashboard.nav.${item.title}`);
             return (
               item.href && (
                 <Link
@@ -154,7 +152,9 @@ export function DashboardSidebar({
                   aria-disabled={item.disabled}
                 >
                   <Icon className={cn("h-4 w-4", item.iconColor)} />
-                  <span className={cn("truncate", collapsed && "hidden")}>{item.title}</span>
+                  <span className={cn("truncate", collapsed && "hidden")}>
+                    {isHydrated ? displayTitle : ''}
+                  </span>
                 </Link>
               )
             );

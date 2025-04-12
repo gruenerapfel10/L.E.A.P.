@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { useTranslation } from 'react-i18next';
 
 interface DashboardHeaderProps {
   user: {
@@ -29,6 +30,8 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ user, navItems }: DashboardHeaderProps) {
+  const { t } = useTranslation();
+  
   return (
     <header className="flex h-16 w-full items-center gap-4 border-b border-border/80 bg-sidebar px-4 md:px-6 relative z-10">
       {/* Subtle gradient line at bottom */}
@@ -79,7 +82,7 @@ export function DashboardHeader({ user, navItems }: DashboardHeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              Log out
+              {t('nav.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

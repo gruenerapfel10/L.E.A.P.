@@ -1,0 +1,18 @@
+{
+  "id": "german-adjective-declension",
+  "title_en": "German Adjective Declension",
+  "localization": {
+    "de": {
+      "title": "Deutsche Adjektivdeklination",
+      "content": "Die Deklination von Adjektiven im Deutschen hängt vom verwendeten Artikel und dem Kasus des Substantivs ab. Es gibt drei Hauptmuster:\n\n1. Nach bestimmten Artikeln (der, die, das)\n2. Nach unbestimmten Artikeln (ein, eine)\n3. Ohne Artikel\n\n## Nach bestimmten Artikeln\n\n| Kasus     | Maskulin | Feminin | Neutral | Plural |\n|-----------|----------|---------|---------|--------|\n| Nominativ | -e       | -e      | -e      | -en    |\n| Akkusativ | -en      | -e      | -e      | -en    |\n| Dativ     | -en      | -en     | -en     | -en    |\n| Genitiv   | -en      | -en     | -en     | -en    |\n\n## Nach unbestimmten Artikeln\n\n| Kasus     | Maskulin | Feminin | Neutral |\n|-----------|----------|---------|---------|\n| Nominativ | -er      | -e      | -es     |\n| Akkusativ | -en      | -e      | -es     |\n| Dativ     | -en      | -en     | -en     |\n| Genitiv   | -en      | -en     | -en     |\n\n## Ohne Artikel\n\n| Kasus     | Maskulin | Feminin | Neutral | Plural |\n|-----------|----------|---------|---------|--------|\n| Nominativ | -er      | -e      | -es     | -e     |\n| Akkusativ | -en      | -e      | -es     | -e     |\n| Dativ     | -em      | -er     | -em     | -en    |\n| Genitiv   | -en      | -er     | -en     | -er    |"
+    }
+  },
+  "content": "Adjective declension in German depends on the article used and the case of the noun. There are three main patterns:\n\n1. After definite articles (der, die, das)\n2. After indefinite articles (ein, eine)\n3. Without articles\n\n## After Definite Articles\n\n| Case      | Masculine | Feminine | Neuter | Plural |\n|-----------|-----------|----------|---------|--------|\n| Nominative| -e        | -e       | -e      | -en    |\n| Accusative| -en       | -e       | -e      | -en    |\n| Dative    | -en       | -en      | -en     | -en    |\n| Genitive  | -en       | -en      | -en     | -en    |\n\n## After Indefinite Articles\n\n| Case      | Masculine | Feminine | Neuter |\n|-----------|-----------|----------|--------|\n| Nominative| -er       | -e       | -es    |\n| Accusative| -en       | -e       | -es    |\n| Dative    | -en       | -en      | -en    |\n| Genitive  | -en       | -en      | -en    |\n\n## Without Articles\n\n| Case      | Masculine | Feminine | Neuter | Plural |\n|-----------|-----------|----------|---------|--------|\n| Nominative| -er       | -e       | -es     | -e     |\n| Accusative| -en       | -e       | -es     | -e     |\n| Dative    | -em       | -er      | -em     | -en    |\n| Genitive  | -en       | -er      | -en     | -er    |",
+  "prerequisites": ["german-articles"],
+  "linkedModules": ["adjective-declension"],
+  "metadata": {
+    "cefrLevel": "A2",
+    "tags": ["grammar", "adjectives", "declension"],
+    "lastUpdated": "2024-03-20"
+  }
+} 

@@ -1,0 +1,26 @@
+{
+  "id": "adjective-agreement-es",
+  "title": "Spanish Adjective Agreement",
+  "description": "Guide to Spanish adjective gender and number agreement",
+  "content": [
+    {
+      "type": "markdown",
+      "content": "# Spanish Adjective Agreement\n\nSpanish adjectives must agree with the nouns they modify in both gender and number. This means the adjective's ending changes based on whether the noun is masculine or feminine, and singular or plural."
+    },
+    {
+      "type": "markdown",
+      "content": "## Gender Agreement\n\nMost Spanish adjectives have four forms:\n\n| Masculine | Feminine | Example (bonito/a) |\n|-----------|----------|-------------------|\n| -o        | -a       | bonito/bonita     |\n| -e        | -e       | grande/grande     |\n| -or       | -ora     | trabajador/trabajadora |\n| -ista     | -ista    | optimista/optimista |\n\nKey points:\n- Adjectives ending in -o change to -a for feminine\n- Adjectives ending in -e or -ista are the same for both genders\n- Adjectives ending in -or add -a for feminine"
+    },
+    {
+      "type": "markdown",
+      "content": "## Number Agreement\n\nTo make adjectives plural:\n\n| Singular Ending | Plural Ending | Example (bonito/a) |\n|----------------|---------------|-------------------|\n| -o/-a          | -os/-as       | bonitos/bonitas   |\n| -e             | -es           | grandes           |\n| -or/-ora       | -ores/-oras   | trabajadores/trabajadoras |\n| -ista          | -istas        | optimistas        |\n\nKey points:\n- Add -s to adjectives ending in a vowel\n- Add -es to adjectives ending in a consonant\n- Some adjectives have irregular plural forms"
+    }
+  ],
+  "prerequisites": [],
+  "relatedModules": ["adjective-agreement"],
+  "metadata": {
+    "language": "es",
+    "difficulty": "beginner",
+    "lastUpdated": "2024-03-21"
+  }
+} 

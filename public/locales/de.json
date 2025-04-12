@@ -4,7 +4,17 @@
     "howItWorks": "So funktioniert's",
     "successStories": "Erfolgsgeschichten",
     "login": "Anmelden",
-    "getStarted": "Jetzt starten"
+    "getStarted": "Loslegen",
+    "logout": "Abmelden"
+  },
+  "dashboard": {
+    "nav": {
+      "overview": "Übersicht",
+      "languageSkills": "Sprachkenntnisse",
+      "vocabulary": "Vokabeln",
+      "grammarLibrary": "Grammatikbibliothek",
+      "settings": "Einstellungen"
+    }
   },
   "home": {
     "revolutionizing": "Revolutionieren Sie das Sprachenlernen",

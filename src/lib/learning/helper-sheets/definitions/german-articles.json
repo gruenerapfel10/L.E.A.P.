@@ -1,0 +1,18 @@
+{
+  "id": "german-articles",
+  "title_en": "German Articles",
+  "localization": {
+    "de": {
+      "title": "Deutsche Artikel",
+      "content": "# Deutsche Artikel\n\nDeutsche Artikel sind wesentliche Wortarten, die das Geschlecht, die Zahl und den Fall von Substantiven angeben. Im Deutschen gibt es drei Geschlechter:\n\n- **Maskulin** (der)\n- **Feminin** (die)\n- **Neutral** (das)\n\n## Bestimmte Artikel\n\nHier ist eine Tabelle, die zeigt, wie sich bestimmte Artikel je nach Fall ändern:\n\n| Fall      | Maskulin | Feminin | Neutral | Plural |\n|-----------|----------|---------|---------|--------|\n| Nominativ | der      | die     | das     | die    |\n| Akkusativ | den      | die     | das     | die    |\n| Dativ     | dem      | der     | dem     | den    |\n| Genitiv   | des      | der     | des     | der    |\n\n## Unbestimmte Artikel\n\nSo ändern sich unbestimmte Artikel:\n\n| Fall      | Maskulin | Feminin | Neutral |\n|-----------|----------|---------|---------|\n| Nominativ | ein      | eine    | ein     |\n| Akkusativ | einen    | eine    | ein     |\n| Dativ     | einem    | einer   | einem   |\n| Genitiv   | eines    | einer   | eines   |"
+    }
+  },
+  "content": "# German Articles\n\nGerman articles are essential parts of speech that indicate the gender, number, and case of nouns. There are three genders in German:\n\n- **Masculine** (der)\n- **Feminine** (die)\n- **Neuter** (das)\n\n## Definite Articles\n\nHere's a table showing how definite articles change based on case:\n\n| Case      | Masculine | Feminine | Neuter | Plural |\n|-----------|-----------|----------|---------|--------|\n| Nominative| der       | die      | das     | die    |\n| Accusative| den       | die      | das     | die    |\n| Dative    | dem       | der      | dem     | den    |\n| Genitive  | des       | der      | des     | der    |\n\n## Indefinite Articles\n\nHere's how indefinite articles change:\n\n| Case      | Masculine | Feminine | Neuter |\n|-----------|-----------|----------|--------|\n| Nominative| ein       | eine     | ein    |\n| Accusative| einen     | eine     | ein    |\n| Dative    | einem     | einer    | einem  |\n| Genitive  | eines     | einer    | eines  |",
+  "prerequisites": [],
+  "linkedModules": ["adjective-declension"],
+  "metadata": {
+    "cefrLevel": "A1",
+    "tags": ["grammar", "articles", "basics"],
+    "lastUpdated": "2024-03-20"
+  }
+} 

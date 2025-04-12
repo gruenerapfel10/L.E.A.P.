@@ -1,0 +1,30 @@
+{
+  "id": "adjective-declension-de",
+  "title": "German Adjective Declension",
+  "description": "Comprehensive guide to German adjective declension patterns",
+  "content": [
+    {
+      "type": "markdown",
+      "content": "# German Adjective Declension\n\nGerman adjectives change their endings based on three factors:\n1. The case of the noun (Nominative, Accusative, Dative, Genitive)\n2. The gender of the noun (Masculine, Neuter, Feminine, Plural)\n3. The type of article used (Definite, Indefinite, or No Article)"
+    },
+    {
+      "type": "markdown",
+      "content": "## Weak Declension (After Definite Articles)\n\n| Case       | Masculine | Neuter    | Feminine  | Plural    |\n|------------|-----------|-----------|-----------|-----------|\n| Nominative | **-e**    | **-e**    | **-e**    | -en       |\n| Accusative | -en       | **-e**    | **-e**    | -en       |\n| Dative     | -en       | -en       | -en       | -en       |\n| Genitive   | -en       | -en       | -en       | -en       |\n\n*(Remember the \"Oklahoma\" pattern for the **-e** endings!)*"
+    },
+    {
+      "type": "markdown",
+      "content": "## Mixed Declension (After Indefinite Articles)\n\n| Case       | Masculine | Neuter    | Feminine  | Plural    |\n|------------|-----------|-----------|-----------|-----------|\n| Nominative | **-er**   | **-es**   | **-e**    | -en       |\n| Accusative | -en       | **-es**   | **-e**    | -en       |\n| Dative     | -en       | -en       | -en       | -en       |\n| Genitive   | -en       | -en       | -en       | -en       |\n\n*(Note the strong endings -er/-es in the \"Oklahoma\" pattern where the indefinite article has no ending.)*"
+    },
+    {
+      "type": "markdown",
+      "content": "## Strong Declension (Without Articles)\n\n| Case       | Masculine | Neuter    | Feminine  | Plural    |\n|------------|-----------|-----------|-----------|-----------|\n| Nominative | **-er**   | **-es**   | **-e**    | **-e**    |\n| Accusative | **-en**   | **-es**   | **-e**    | **-e**    |\n| Dative     | **-em**   | **-em**   | **-er**   | **-en**   |\n| Genitive   | **-en**   | **-en**   | **-er**   | **-er**   |\n\n*(Adjective takes the definite article endings, except for Genitive Masc/Neut where it's -en.)*"
+    }
+  ],
+  "prerequisites": [],
+  "relatedModules": ["adjective-declension"],
+  "metadata": {
+    "language": "de",
+    "difficulty": "intermediate",
+    "lastUpdated": "2024-03-21"
+  }
+} 

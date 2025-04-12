@@ -1,11 +1,8 @@
-import { usePathname } from 'next/navigation';
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "allotment/dist/style.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from 'sonner';
 import { Providers } from "@/components/providers";
-import { Navbar } from "@/components/navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 

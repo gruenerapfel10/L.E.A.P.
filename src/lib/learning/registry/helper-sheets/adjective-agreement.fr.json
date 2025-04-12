@@ -1,0 +1,26 @@
+{
+  "id": "adjective-agreement-fr",
+  "title": "French Adjective Agreement",
+  "description": "Guide to French adjective gender and number agreement",
+  "content": [
+    {
+      "type": "markdown",
+      "content": "# French Adjective Agreement\n\nFrench adjectives must agree with the nouns they modify in both gender and number. Unlike Spanish, French adjectives typically come after the noun they modify."
+    },
+    {
+      "type": "markdown",
+      "content": "## Gender Agreement\n\nMost French adjectives have two forms:\n\n| Masculine | Feminine | Example (petit/e) |\n|-----------|----------|-------------------|\n| -e        | -e       | petit/petite      |\n| -x        | -se      | heureux/heureuse  |\n| -f        | -ve      | neuf/neuve        |\n| -er       | -ère     | cher/chère        |\n\nKey points:\n- Add -e to masculine adjectives to make them feminine\n- Some adjectives have irregular feminine forms\n- Adjectives ending in -e are the same in masculine and feminine"
+    },
+    {
+      "type": "markdown",
+      "content": "## Number Agreement\n\nTo make adjectives plural:\n\n| Singular Ending | Plural Ending | Example (petit/e) |\n|----------------|---------------|-------------------|\n| -e             | -es           | petits/petites    |\n| -x             | -x            | heureux/heureuses |\n| -al            | -aux          | national/nationaux |\n| -eau           | -eaux         | beau/beaux        |\n\nKey points:\n- Add -s to make adjectives plural\n- Some adjectives have irregular plural forms\n- Adjectives ending in -x or -s don't change in the masculine plural"
+    }
+  ],
+  "prerequisites": [],
+  "relatedModules": ["adjective-agreement"],
+  "metadata": {
+    "language": "fr",
+    "difficulty": "beginner",
+    "lastUpdated": "2024-03-21"
+  }
+} 

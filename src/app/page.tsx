@@ -8,6 +8,7 @@ import clsx from "clsx"; // Import clsx for conditional classes
 import { useTranslation } from 'react-i18next'; // Import the hook
 import { useEffect, useState } from 'react'; // Import useState and useEffect
 import { AnimatedFast } from "@/components/animated-fast";
+import { Footer } from "@/components/footer";
 
 // Helper function to render the grid columns
 // Accepts keyPrefix and an array of pre-calculated offsets
@@ -196,17 +197,13 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="relative py-32 bg-background overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-        <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-gradient-to-l from-primary/10 to-transparent blur-3xl" />
-        
-        <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section id="features" className="relative py-32 bg-black">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 animate-fade-in-up">
-            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
               {t('features.sectionTitle')}
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-white/70 max-w-2xl mx-auto">
               {t('features.sectionSubtitle')}
             </p>
           </div>
@@ -217,35 +214,33 @@ export default function Home() {
                 icon: <Rocket className="h-8 w-8" />,
                 titleKey: "features.feature1Title",
                 descriptionKey: "features.feature1Desc",
-                gradient: "from-blue-500 via-indigo-500 to-purple-500",
                 delay: 200
               },
               {
                 icon: <Languages className="h-8 w-8" />,
                 titleKey: "features.feature2Title",
                 descriptionKey: "features.feature2Desc",
-                gradient: "from-purple-500 via-pink-500 to-red-500",
                 delay: 400
               },
               {
                 icon: <Users className="h-8 w-8" />,
                 titleKey: "features.feature3Title",
                 descriptionKey: "features.feature3Desc",
-                gradient: "from-red-500 via-orange-500 to-yellow-500",
                 delay: 600
               }
             ].map((feature, index) => (
               <div 
                 key={index} 
-                className="group relative p-8 rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm hover:bg-accent/5 transition-all duration-300 animate-fade-in-up"
+                className="relative p-8 rounded-2xl border border-white/10 bg-white/5 animate-fade-in-up hover:bg-white/10 transition-colors"
                 style={{ animationDelay: `${feature.delay}ms` }}
               >
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.gradient} text-white mb-6`}>
-                  {feature.icon}
+                <div className="relative z-10">
+                  <div className="inline-flex p-3 rounded-xl bg-white/10 mb-6 text-white">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3 text-white">{t(feature.titleKey)}</h3>
+                  <p className="text-white/70 leading-relaxed">{t(feature.descriptionKey)}</p>
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{t(feature.titleKey)}</h3>
-                <p className="text-muted-foreground leading-relaxed">{t(feature.descriptionKey)}</p>
               </div>
             ))}
           </div>
@@ -253,20 +248,20 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="relative py-32 bg-gradient-to-b from-background to-primary/5">
+      <section className="relative py-32 bg-black">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20 animate-fade-in-up">
-            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
               {t('howItWorks.sectionTitle')}
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-white/70 max-w-2xl mx-auto">
               {t('howItWorks.sectionSubtitle')}
             </p>
           </div>
           
           <div className="relative max-w-5xl mx-auto">
             {/* Connection Line */}
-            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 transform -translate-y-1/2 hidden md:block" />
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/10 transform -translate-y-1/2 hidden md:block" />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               {[
@@ -291,14 +286,14 @@ export default function Home() {
               ].map((step, index) => (
                 <div 
                   key={index} 
-                  className="relative p-8 rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm animate-fade-in-up hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                  className="relative p-8 rounded-2xl border border-white/10 bg-white/5 animate-fade-in-up hover:bg-white/10 transition-colors"
                   style={{ animationDelay: `${step.delay}ms` }}
                 >
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-gradient-to-r from-primary via-accent to-primary text-white flex items-center justify-center text-lg font-bold shadow-lg shadow-primary/20">
+                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-white text-black flex items-center justify-center text-lg font-bold">
                     {step.step}
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 mt-4 text-center">{t(step.titleKey)}</h3>
-                  <p className="text-muted-foreground text-center leading-relaxed">{t(step.descriptionKey)}</p>
+                  <h3 className="text-xl font-semibold mb-3 mt-4 text-center text-white">{t(step.titleKey)}</h3>
+                  <p className="text-white/70 text-center leading-relaxed">{t(step.descriptionKey)}</p>
                 </div>
               ))}
             </div>
@@ -307,17 +302,13 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="relative py-32 bg-background overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-accent/5" />
-        <div className="absolute left-0 top-0 w-[500px] h-[500px] bg-gradient-to-r from-primary/10 to-transparent blur-3xl" />
-        
-        <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative py-32 bg-black">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 animate-fade-in-up">
-            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
               {t('testimonials.sectionTitle')}
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-white/70 max-w-2xl mx-auto">
               {t('testimonials.sectionSubtitle')}
             </p>
           </div>
@@ -328,42 +319,38 @@ export default function Home() {
                 nameKey: "testimonials.testimonial1Name",
                 roleKey: "testimonials.testimonial1Role",
                 quoteKey: "testimonials.testimonial1Quote",
-                gradient: "from-blue-500 to-indigo-500",
                 delay: 200
               },
               {
                 nameKey: "testimonials.testimonial2Name",
                 roleKey: "testimonials.testimonial2Role",
                 quoteKey: "testimonials.testimonial2Quote",
-                gradient: "from-indigo-500 to-purple-500",
                 delay: 400
               },
               {
                 nameKey: "testimonials.testimonial3Name",
                 roleKey: "testimonials.testimonial3Role",
                 quoteKey: "testimonials.testimonial3Quote",
-                gradient: "from-purple-500 to-pink-500",
                 delay: 600
               }
             ].map((testimonial, index) => (
               <div 
                 key={index} 
-                className="group relative p-8 rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 animate-fade-in-up"
+                className="relative p-8 rounded-2xl border border-white/10 bg-white/5 animate-fade-in-up hover:bg-white/10 transition-colors"
                 style={{ animationDelay: `${testimonial.delay}ms` }}
               >
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${testimonial.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
                 <div className="flex items-center mb-6">
-                  <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${testimonial.gradient} flex items-center justify-center text-lg font-bold text-white`}>
+                  <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center text-lg font-bold">
                     {t(testimonial.nameKey).charAt(0)}
                   </div>
                   <div className="ml-4">
-                    <h3 className="font-semibold">{t(testimonial.nameKey)}</h3>
-                    <p className="text-sm text-muted-foreground">{t(testimonial.roleKey)}</p>
+                    <h3 className="font-semibold text-white">{t(testimonial.nameKey)}</h3>
+                    <p className="text-sm text-white/70">{t(testimonial.roleKey)}</p>
                   </div>
                 </div>
                 <blockquote className="relative">
-                  <span className="absolute -top-2 -left-2 text-4xl text-primary/20">"</span>
-                  <p className="text-muted-foreground leading-relaxed pl-4">{t(testimonial.quoteKey)}</p>
+                  <span className="absolute -top-2 -left-2 text-4xl text-white/20">"</span>
+                  <p className="text-white/70 leading-relaxed pl-4">{t(testimonial.quoteKey)}</p>
                 </blockquote>
               </div>
             ))}
@@ -372,27 +359,20 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-10" />
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px]" />
-        
+      <section className="relative py-32 bg-black">
         <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative p-12 md:p-16 rounded-3xl overflow-hidden">
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-10" />
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px]" />
-            
+          <div className="relative p-12 md:p-16 rounded-3xl border border-white/10 bg-white/5">
             {/* Content */}
             <div className="relative text-center max-w-3xl mx-auto animate-fade-in-up">
-              <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 bg-gradient-to-r from-white via-primary-foreground to-white bg-clip-text text-transparent">
+              <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 text-white">
                 {t('cta.title')}
               </h2>
-              <p className="text-xl mb-10 text-primary-foreground/80">
+              <p className="text-xl mb-10 text-white/70">
                 {t('cta.subtitle')}
               </p>
               <Button 
                 size="lg" 
-                className="bg-white text-primary hover:bg-white/90 transition-colors shadow-2xl shadow-white/20"
+                className="bg-white text-black hover:bg-white/90 transition-colors"
                 asChild
               >
                 <Link href="/signup">
@@ -404,6 +384,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }

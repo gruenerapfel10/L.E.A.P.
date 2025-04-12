@@ -1,92 +1,92 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Target, ChevronDown, Check } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
-import { supportedLngs } from '@/lib/i18n';
-
-const languageNames: Record<string, string> = {
-  en: 'English',
-  de: 'Deutsch',
-  es: 'Español',
-  fr: 'Français',
-  it: 'Italiano',
-  ja: '日本語',
-  pt: 'Português'
-};
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getFlagIconClass } from '@/lib/languages';
 
 interface TargetLanguageSelectorProps {
   currentTargetLanguage: string;
+  onLanguageChange: (newLanguage: string) => void;
   userId: string;
 }
 
-export function TargetLanguageSelector({ currentTargetLanguage, userId }: TargetLanguageSelectorProps) {
-  const [targetLanguage, setTargetLanguage] = useState(currentTargetLanguage || 'de');
-  const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
+const languageOptions = [
+  { code: 'de', name: 'Deutsch' },
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Español' },
+  { code: 'fr', name: 'Français' },
+  { code: 'it', name: 'Italiano' },
+  { code: 'ja', name: '日本語' },
+  { code: 'pt', name: 'Português' },
+];
 
-  const handleLanguageChange = async (langCode: string) => {
-    if (langCode === targetLanguage) return;
+export function TargetLanguageSelector({ 
+  currentTargetLanguage, 
+  onLanguageChange,
+  userId 
+}: TargetLanguageSelectorProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLanguageChange = async (newLanguage: string) => {
+    if (newLanguage === currentTargetLanguage) return;
     
     setIsLoading(true);
     try {
-      // Save target language preference to user profile
+      // Optimistically update the UI
+      onLanguageChange(newLanguage);
+      
+      // Update the database
+      const supabase = createClient();
       const { error } = await supabase
         .from('profiles')
-        .update({ target_language: langCode })
+        .update({ target_language: newLanguage })
         .eq('id', userId);
         
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      setTargetLanguage(langCode);
-      toast.success(`Target language changed to ${languageNames[langCode]}`);
-      
-      // Refresh the page to update the module list
-      window.location.reload();
+      toast.success(`Target language changed to ${languageOptions.find(lang => lang.code === newLanguage)?.name}`);
     } catch (error) {
-      console.error("Error saving target language preference:", error);
-      toast.error("Failed to save target language preference");
+      console.error('Error updating target language:', error);
+      toast.error('Failed to update target language');
+      // Revert the optimistic update
+      onLanguageChange(currentTargetLanguage);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="text-foreground/80 hover:text-primary"
-          disabled={isLoading}
-        >
-          <Target className="h-4 w-4 mr-2" />
-          <span className="text-sm">Learning: {languageNames[targetLanguage] || 'German'}</span>
-          <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[180px] bg-white/80 dark:bg-[#030014]/80 backdrop-blur-[8px]">
-        {supportedLngs.map((langCode) => (
-          <DropdownMenuItem
-            key={langCode}
-            onClick={() => handleLanguageChange(langCode)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            <span>{languageNames[langCode]}</span>
-            {targetLanguage === langCode && (
-              <Check className="h-4 w-4 ml-2" />
-            )}
-          </DropdownMenuItem>
+    <Select
+      value={currentTargetLanguage}
+      onValueChange={handleLanguageChange}
+      disabled={isLoading}
+    >
+      <SelectTrigger className="w-[180px] bg-white/10 border-white/20 text-white">
+        <div className="flex items-center gap-2">
+          <span className={`${getFlagIconClass(currentTargetLanguage)} text-lg`}></span>
+          <SelectValue placeholder="Select target language" />
+        </div>
+      </SelectTrigger>
+      <SelectContent>
+        {languageOptions.map((lang) => (
+          <SelectItem key={lang.code} value={lang.code}>
+            <div className="flex items-center gap-2">
+              <span className={`${getFlagIconClass(lang.code)} text-lg`}></span>
+              <span>{lang.name}</span>
+            </div>
+          </SelectItem>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </SelectContent>
+    </Select>
   );
 } 

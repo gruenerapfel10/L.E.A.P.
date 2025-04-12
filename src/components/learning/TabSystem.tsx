@@ -451,8 +451,7 @@ function TabWindow({
   return (
     <div ref={dropRef} className={cn(
         "relative flex flex-col h-full w-full rounded-lg overflow-hidden",
-        "bg-tab from-card via-[rgb(2,4,12)] to-card",
-        "border border-white/10",
+        "border border-ring/30",
         "backdrop-blur-xl",
         "transition-all duration-200"
     )} >

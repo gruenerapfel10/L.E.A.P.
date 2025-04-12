@@ -23,10 +23,15 @@ const languageNames: Record<string, string> = {
   pt: 'Português'
 };
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  onLanguageChange?: (langCode: string) => void;
+}
+
+export function LanguageSwitcher({ onLanguageChange }: LanguageSwitcherProps) {
   const { i18n } = useTranslation();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
 
   // Load the UI language from the user profile on mount
   useEffect(() => {
@@ -41,6 +46,7 @@ export function LanguageSwitcher() {
             .single();
             
           if (data?.ui_language && !error) {
+            setCurrentLanguage(data.ui_language);
             i18n.changeLanguage(data.ui_language);
           }
         } catch (error) {
@@ -66,28 +72,18 @@ export function LanguageSwitcher() {
     setIsLoading(true);
     try {
       // Change i18n language for UI
+      setCurrentLanguage(langCode);
       i18n.changeLanguage(langCode);
       
-      // Save language preference to user profile
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            ui_language: langCode, 
-            native_language: langCode 
-          })
-          .eq('id', user.id);
-          
-        if (error) {
-          throw error;
-        }
-        
-        toast.success(`Language changed to ${languageNames[langCode]}`);
+      // Notify parent component of language change
+      if (onLanguageChange) {
+        onLanguageChange(langCode);
       }
+      
+      toast.success(`Language changed to ${languageNames[langCode]}`);
     } catch (error) {
-      console.error("Error saving language preference:", error);
-      toast.error("Failed to save language preference");
+      console.error("Error changing language:", error);
+      toast.error("Failed to change language");
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +99,7 @@ export function LanguageSwitcher() {
           disabled={isLoading}
         >
           <Languages className="h-4 w-4 mr-2" />
-          <span className="text-sm">{languageNames[i18n.language] || 'English'}</span>
+          <span className="text-sm">{languageNames[currentLanguage] || 'English'}</span>
           <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -115,7 +111,7 @@ export function LanguageSwitcher() {
             className="flex items-center justify-between cursor-pointer"
           >
             <span>{lang.name}</span>
-            {i18n.language === lang.code && (
+            {currentLanguage === lang.code && (
               <Check className="h-4 w-4 ml-2" />
             )}
           </DropdownMenuItem>

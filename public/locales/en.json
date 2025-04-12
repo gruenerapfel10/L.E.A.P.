@@ -4,7 +4,17 @@
     "howItWorks": "How It Works",
     "successStories": "Success Stories",
     "login": "Login",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "logout": "Log out"
+  },
+  "dashboard": {
+    "nav": {
+      "overview": "Overview",
+      "languageSkills": "Language Skills",
+      "vocabulary": "Vocabulary",
+      "grammarLibrary": "Grammar Library",
+      "settings": "Settings"
+    }
   },
   "home": {
     "heroTitle": "Master Languages",

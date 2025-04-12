@@ -4,20 +4,20 @@ import { useEffect, useState, use, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
   AlertCircle, ArrowLeft, BookOpen, RefreshCw, Brain, Check, Percent, Hash, X,
   Puzzle,
   FileQuestion,
   Bot,
+  Settings,
+  ChevronRight,
+  Library,
 } from 'lucide-react';
 import { ReadingMultipleChoiceComponent } from '@/components/learning/interactions/ReadingMultipleChoice';
 import { WritingFillInGapComponent } from '@/components/learning/interactions/WritingFillInGap';
 import { ReadingTrueFalseComponent } from '@/components/learning/interactions/ReadingTrueFalse';
 import { DebugMenu } from '@/components/learning/debug-menu';
-import { StatCard } from '@/components/learning/stat-card';
 import { WritingCorrectIncorrectSentence } from '@/components/learning/interactions/WritingCorrectIncorrectSentence';
-import { HelperSidePanel } from '@/components/learning/HelperSidePanel';
 import { ModuleDefinition, SubmoduleDefinition, HelperResource } from '@/lib/learning/types';
 import { TabSystem, type LayoutNode } from '@/components/learning/TabSystem';
 import { DndProvider } from 'react-dnd';
@@ -25,6 +25,35 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { cn } from '@/lib/utils';
 import { Chat } from '@/components/learning/ai/chat';
 import { useChat, type Message } from '@ai-sdk/react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { loadHelperSheets } from '@/lib/learning/helper-sheets/loader';
+import { helperSheetRegistry } from '@/lib/learning/helper-sheets/helper-sheet-registry';
+import type { HelperSheet } from '@/lib/learning/types';
+import MarkdownRenderer from '@/components/common/MarkdownRenderer';
+import { useTranslation } from 'react-i18next';
+import Link from 'next/link';
+
+// Language code to name mapping
+const languageNames: Record<string, string> = {
+  en: 'English',
+  de: 'German', // Using German instead of Deutsch for consistency in English UI
+  es: 'Spanish',
+  fr: 'French',
+  it: 'Italian',
+  ja: 'Japanese',
+  pt: 'Portuguese'
+};
+
+// Add flag mapping
+const languageFlags: Record<string, string> = {
+  en: '🇬🇧',
+  de: '🇩🇪',
+  es: '🇪🇸',
+  fr: '🇫🇷',
+  it: '🇮🇹',
+  ja: '🇯🇵',
+  pt: '🇵🇹'
+};
 
 // Define more specific types for API responses based on refactored API
 interface StartSessionApiResponse { // Assumed structure from /start endpoint
@@ -44,13 +73,13 @@ interface NextStepInfo {
   modalSchemaId: string;
   submoduleTitle: string;
   uiComponent: string;
+  questionData: any;
+  questionDebugInfo?: any;
 }
 
 interface SubmitApiResponse {
-  markResult: any;
+  markingResult: any;
   nextStep: NextStepInfo | null;
-  nextQuestionData: any | null;
-  nextQuestionDebugInfo: any | null;
 }
 
 // State to hold the current session details
@@ -135,10 +164,26 @@ const GradientBlobs = () => {
   );
 };
 
+// Add this new component before the main SessionPage component
+const SessionSettings = () => {
+  return (
+    <div className="p-4 space-y-4">
+      <h3 className="font-medium">Session Settings</h3>
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">
+          Settings will be implemented in a future update.
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function SessionPage({ params }: SessionPageProps) {
   const resolvedParams = use(params);
   const initialSessionId = resolvedParams.sessionId;
   const router = useRouter();
+  const { i18n } = useTranslation();
+  const [selectedHelperSheetId, setSelectedHelperSheetId] = useState<string | null>(null);
 
   // State for the main session logic
   const [state, setState] = useState<SessionState>(() => ({
@@ -343,14 +388,14 @@ export default function SessionPage({ params }: SessionPageProps) {
         ...prev,
         isSubmitting: false,
         isAnswered: true, 
-        markResult: result.markResult, 
+        markResult: result.markingResult,
         // Update session stats
         sessionTotalAnswered: prev.sessionTotalAnswered + 1,
-        sessionCorrectCount: prev.sessionCorrectCount + (result.markResult?.isCorrect ? 1 : 0),
-        // Buffer next step
+        sessionCorrectCount: prev.sessionCorrectCount + (result.markingResult?.isCorrect ? 1 : 0),
+        // Buffer next step info AND extract nested data
         bufferedNextStep: result.nextStep, 
-        bufferedNextQuestionData: result.nextQuestionData, 
-        bufferedNextQuestionDebugInfo: result.nextQuestionDebugInfo,
+        bufferedNextQuestionData: result.nextStep?.questionData || null,
+        bufferedNextQuestionDebugInfo: result.nextStep?.questionDebugInfo || null,
       }));
 
     } catch (error) {
@@ -454,26 +499,6 @@ export default function SessionPage({ params }: SessionPageProps) {
   // --- Define Tab Content dynamically using useCallback --- 
   const questionTabContent = useCallback(() => state.currentQuestionData ? (
     <Card className="h-full bg-transparent border-none shadow-none flex flex-col">
-      <CardHeader>
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            {state.currentSubmoduleTitle ? (
-              <Badge 
-                variant="outline" 
-                className="modern-text-xs"
-              >
-                <Brain className="w-3 h-3 mr-1" />
-                {state.currentSubmoduleTitle}
-              </Badge>
-            ) : null}
-            {state.currentModalSchemaId && (
-              <Badge variant="secondary" className="modern-text-xs">
-                <Puzzle className="w-3 h-3 mr-1" /> {state.currentModalSchemaId.replace(/-/g, ' ')}
-              </Badge>
-            )}
-          </div>
-        </div>
-      </CardHeader>
       <CardContent className="space-y-4 flex-grow">
         {renderInteractionUI()} 
       </CardContent>
@@ -536,16 +561,6 @@ export default function SessionPage({ params }: SessionPageProps) {
     <div className="text-center text-muted-foreground modern-text-base">Waiting for session data...</div>
   ), [state, renderInteractionUI]); // Added renderInteractionUI dependency
 
-  const helperTabContent = useCallback(() => (
-    <Card className="h-full bg-transparent border-none shadow-none">
-      <HelperSidePanel 
-        submodule={state.currentSubmodule}
-        module={state.currentModule}
-        moduleOverviewMode={true} // Assuming this is desired
-        onClose={() => {}} // Provide a dummy or actual close handler if needed
-      />
-    </Card>
-  ), [state.currentSubmodule, state.currentModule]); // Dependencies
 
   const aiAssistantTabContent = useCallback(() => (
     <Chat
@@ -636,21 +651,186 @@ export default function SessionPage({ params }: SessionPageProps) {
     </div>
   ), [state.sessionCorrectCount, state.sessionTotalAnswered, accuracy, incorrectCount]);
 
+  // Reset selected sheet when module changes
+  useEffect(() => {
+    setSelectedHelperSheetId(null);
+  }, [state.moduleId]);
+
+  // Helper function to get localized title/content
+  const getLocalizedSheetData = (sheet: HelperSheet | undefined) => {
+    if (!sheet) return { title: 'Error', content: 'Sheet not found' };
+    const lang = i18n.language;
+    const localized = sheet.localization[lang];
+    return {
+      title: localized?.title || sheet.title_en,
+      content: localized?.content || sheet.content
+    };
+  };
+
   // --- Define getContentForTab function --- 
   const getContentForTab = useCallback((tabId: string): React.ReactNode => {
     switch (tabId) {
       case 'question':
         return questionTabContent();
       case 'helper':
-        return helperTabContent();
+        if (!state.moduleId || !state.targetLanguage) return null; 
+
+        // --- Fetch ALL sheets for the module ---
+        const allModuleSheets = helperSheetRegistry.getHelperSheetsForModule(state.moduleId);
+
+        // --- Filter sheets relevant to the TARGET language ---
+        const relevantLanguageSheets = allModuleSheets.filter(sheet => 
+          sheet.localization[state.targetLanguage] // Check if localization exists for the target language
+        );
+
+        // Handle case where no relevant sheets are found for the language
+        if (relevantLanguageSheets.length === 0) {
+          return (
+            <div className="p-4 flex flex-col items-center justify-center h-full gap-4">
+              <p className="text-muted-foreground text-sm italic">
+                No helper sheets found for {languageNames[state.targetLanguage] || state.targetLanguage.toUpperCase()} for this module.
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/library">
+                  <Library className="h-4 w-4 mr-2" />
+                  View Full Library
+                </Link>
+              </Button>
+            </div>
+          );
+        }
+
+        // --- Determine the primary sheet FROM THE RELEVANT SHEETS ---
+        // Prefer sheet with prerequisites, otherwise take the first relevant one
+        const primaryModuleSheet = relevantLanguageSheets.find(sheet => sheet.prerequisites && sheet.prerequisites.length > 0) 
+                                  || relevantLanguageSheets[0]; 
+
+        // Determine the sheet to display content for (selected prerequisite or primary)
+        const sheetToDisplayContent = selectedHelperSheetId
+          ? allModuleSheets.find(s => s.id === selectedHelperSheetId) // Find prereq from ALL sheets
+          : primaryModuleSheet; // Default to the language-relevant primary
+
+        if (!sheetToDisplayContent) return null; 
+
+        const { title: displayTitle, content: displayContent } = getLocalizedSheetData(sheetToDisplayContent);
+
+        // --- Get prerequisite sheets (based on the LANGUAGE-RELEVANT primary sheet) ---
+        const prerequisiteSheets = (primaryModuleSheet.prerequisites || [])
+              .map((id: string) => helperSheetRegistry.getHelperSheet(id))
+              .filter((sheet): sheet is HelperSheet => sheet !== undefined);
+
+        const isViewingPrerequisite = selectedHelperSheetId !== null && selectedHelperSheetId !== primaryModuleSheet.id;
+
+        return (
+          <div className="flex flex-col gap-8 p-6">
+            {/* Back button if viewing prerequisite */}
+            {isViewingPrerequisite && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-fit text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedHelperSheetId(null)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Main Sheet
+              </Button>
+            )}
+
+            {/* Prerequisites Section (only show if viewing primary module sheet) */}
+            {!isViewingPrerequisite && prerequisiteSheets.length > 0 && (
+              <div className="space-y-3"> 
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  Prerequisites
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted">Required</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {prerequisiteSheets.map((sheet: HelperSheet) => {
+                    const { title: prereqTitle } = getLocalizedSheetData(sheet);
+                    return (
+                      <Button 
+                        key={sheet.id} 
+                        variant="outline"
+                        className="group relative p-4 border rounded-xl bg-card hover:bg-card/80 h-auto text-left flex flex-col items-start gap-2.5 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]"
+                        onClick={() => setSelectedHelperSheetId(sheet.id)}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl" />
+                        <h4 className="font-medium text-base">{prereqTitle}</h4>
+                        {sheet.metadata?.tags && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {sheet.metadata.tags.map((tag: string) => (
+                              <span key={tag} className="text-[10px] font-medium bg-muted/50 px-2 py-0.5 rounded-full">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-auto text-[10px] font-medium text-muted-foreground pt-1.5 flex items-center gap-1.5">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-primary/30" />
+                            CEFR {sheet.metadata?.cefrLevel || 'N/A'}
+                          </span>
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Main Content Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-semibold tracking-tight">{displayTitle}</h2>
+                  {sheetToDisplayContent.metadata?.tags && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {sheetToDisplayContent.metadata.tags.map((tag: string) => (
+                        <span key={tag} className="text-[10px] font-medium bg-muted/50 px-2 py-0.5 rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {sheetToDisplayContent.metadata?.cefrLevel && (
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                      CEFR {sheetToDisplayContent.metadata.cefrLevel}
+                    </span>
+                  )}
+                  <Button asChild variant="outline" size="sm" className="h-8">
+                    <Link href="/dashboard/library">
+                      <Library className="h-4 w-4 mr-2" />
+                      View Full Library
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Enhanced Markdown Content */}
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-strong:font-medium prose-li:text-muted-foreground">
+                <div className="[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_table]:mt-6">
+                  <div className="[&_th]:text-muted-foreground [&_th]:font-medium [&_th]:p-3 [&_th]:bg-muted/50 [&_th]:first:rounded-tl-lg [&_th]:last:rounded-tr-lg">
+                    <div className="[&_td]:p-3 [&_td]:border-b [&_td]:border-muted [&_tr:last-child_td]:border-0">
+                      <div className="[&_tr:hover]:bg-muted/30 [&_tr]:transition-colors">
+                        <MarkdownRenderer content={displayContent} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'ai_assistant':
         return aiAssistantTabContent();
       case 'stats':
         return statsTabContent();
       default:
-        return null; // Or some default content/error message
+        return null;
     }
-  }, [questionTabContent, helperTabContent, aiAssistantTabContent, statsTabContent]); // Add tab content functions as dependencies
+  }, [state.moduleId, questionTabContent, aiAssistantTabContent, statsTabContent, i18n.language, selectedHelperSheetId]);
 
   // --- Render Logic --- 
   if (state.isLoading) { 
@@ -677,36 +857,78 @@ export default function SessionPage({ params }: SessionPageProps) {
        return ( <div className="text-center text-muted-foreground p-8">Could not load question data. <Button onClick={() => router.push('/dashboard/language-skills')} variant="outline">Back</Button></div> );
   }
 
+  // Load helper sheets
+  loadHelperSheets();
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex flex-col h-full w-full relative">
         <GradientBlobs />
         <div className="flex-none z-20">
-          <div className="flex items-center justify-between px-4 py-2 mx-2 mt-2 rounded-lg bg-sidebar border border-border backdrop-blur-md">
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-all"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-lg font-semibold text-foreground">Session</h1>
+          <div className="flex items-center justify-between px-4 py-2 mx-2 mt-2 rounded-lg bg-sidebar border border-ring/30 backdrop-blur-md">
+            <div className="flex flex-col">
+              <h1 className="text-lg font-semibold text-foreground">
+                {languageNames[state.targetLanguage] || state.targetLanguage.toUpperCase()} Session
+              </h1>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary">
+                  <BookOpen className="h-3 w-3" />
+                  {state.currentModule?.title_en || 'Loading...'}
+                </span>
+                <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary/10 text-secondary-foreground">
+                  <Brain className="h-3 w-3" />
+                  {state.currentSubmoduleTitle || 'Loading...'}
+                </span>
+                <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent/10 text-accent-foreground">
+                  <Puzzle className="h-3 w-3" />
+                  {state.currentModalSchemaId?.replace(/-/g, ' ') || 'Loading...'}
+                </span>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-all"
-              onClick={() => router.push('/dashboard/language-skills')}
-            >
-              End Session
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 backdrop-blur-sm border border-border/10">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg">{languageFlags[state.targetLanguage] || '🏳️'}</span>
+                    <span className="font-medium">{state.targetLanguage.toUpperCase()}</span>
+                  </div>
+                  <ArrowLeft className="h-3 w-3 rotate-180" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg">{languageFlags[state.sourceLanguage] || '🏳️'}</span>
+                    <span className="font-medium">{state.sourceLanguage.toUpperCase()}</span>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 text-muted-foreground hover:text-primary hover:bg-primary/10 border-border/50 cursor-pointer transition-all"
+                onClick={() => router.push('/dashboard/language-skills')}
+              >
+                End Session
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-all"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <SessionSettings />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-hidden mt-2">
+        <div className="flex-1 overflow-hidden">
           {/* Pass layout state and handlers to TabSystem */}
           {/* Also fixes the linter error by providing correct props */}
           <TabSystem 

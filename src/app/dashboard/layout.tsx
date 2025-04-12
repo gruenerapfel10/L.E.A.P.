@@ -7,25 +7,31 @@ import { DashboardHeader } from '@/components/dashboard-header';
 // Memoize the sidebar items to prevent re-renders
 const sidebarNavItems: SidebarNavItem[] = [
   {
-    title: "Overview",
+    title: "overview",
     href: "/dashboard",
     icon: "dashboard",
     iconColor: "text-indigo-500/70",
   },
   {
-    title: "Language Skills",
+    title: "languageSkills",
     href: "/dashboard/language-skills",
     icon: "languages",
     iconColor: "text-purple-500/70",
   },
   {
-    title: "Vocabulary",
+    title: "vocabulary",
     href: "/dashboard/vocabulary",
     icon: "book",
     iconColor: "text-green-500/70",
   },
   {
-    title: "Settings",
+    title: "grammarLibrary",
+    href: "/dashboard/library",
+    icon: "library",
+    iconColor: "text-green-500",
+  },
+  {
+    title: "settings",
     href: "/dashboard/settings",
     icon: "settings",
     iconColor: "text-pink-500/70",
@@ -33,21 +39,21 @@ const sidebarNavItems: SidebarNavItem[] = [
 ];
 
 // Memoized header component
-const MemoizedHeader = memo(function MemoizedHeader({ user }: { user: { name: string; email: string; initial: string; plan: string } }) {
+const MemoizedHeader = memo(function MemoizedHeader({ user, navItems }: { user: { name: string; email: string; initial: string; plan: string }, navItems: SidebarNavItem[] }) {
   return (
     <DashboardHeader 
       user={user} 
-      navItems={sidebarNavItems} 
+      navItems={navItems} 
     />
   );
 });
 
 // Memoized sidebar component
-const MemoizedSidebar = memo(function MemoizedSidebar({ user }: { user: { name: string; email: string; initial: string; plan: string } }) {
+const MemoizedSidebar = memo(function MemoizedSidebar({ user, navItems }: { user: { name: string; email: string; initial: string; plan: string }, navItems: SidebarNavItem[] }) {
   return (
     <DashboardSidebar 
       user={user} 
-      navItems={sidebarNavItems} 
+      navItems={navItems} 
       className="hidden md:block overflow-y-auto border-r border-border/40 bg-card" 
     />
   );
@@ -138,15 +144,15 @@ export default async function DashboardLayout({
   return (
     <div className="flex flex-col h-screen bg-background relative">
       {/* Header - Memoized */}
-      <MemoizedHeader user={userData} />
+      <MemoizedHeader user={userData} navItems={sidebarNavItems} />
       
       {/* Content area */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar - Memoized */}
-        <MemoizedSidebar user={userData} />
+        <MemoizedSidebar user={userData} navItems={sidebarNavItems} />
         
         {/* Main content area - This is the only part that will re-render */}
-        <main className="flex-1 min-h-0 overflow-y-auto p-2 md:p-4 relative bg-sidebar">
+        <main className="flex-1 min-h-0 overflow-y-auto relative bg-sidebar">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/5 to-transparent" />
           {children}
         </main>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { moduleRegistryService } from '@/lib/learning/registry/module-registry.service';
 import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.service';
-import { statisticsService } from '@/lib/learning/statistics/statistics.service';
+import { StatisticsService } from '@/lib/learning/statistics/statistics.service';
 import { pickerAlgorithmService } from '@/lib/learning/picker/picker.service';
 import { questionGenerationService } from '@/lib/learning/generation/question-generation.service';
 import { SubmoduleDefinition } from '@/lib/learning/types';
@@ -55,8 +55,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the user ID
+    // Create Supabase client for this request (server-side)
     const supabase = await createClient();
+
+    // Get the user ID
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -68,8 +70,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Module not found for ID ${moduleId} and language ${targetLanguage}` }, { status: 404 });
     }
 
-    // Start a new learning session
-    const sessionId = await statisticsService.startSession({
+    // Start a new learning session using the static method
+    const sessionId = await StatisticsService.startSession(supabase, {
       userId: user.id,
       moduleId,
       targetLanguage,
@@ -77,8 +79,7 @@ export async function POST(request: Request) {
     });
 
     // Get user's session history for the module (for picker)
-    // Note: History might need adjustment based on updated DB schema in statisticsService
-    const history = await statisticsService.getUserSessionHistory(user.id, moduleId);
+    const history = await StatisticsService.getUserSessionHistory(supabase, user.id, moduleId);
 
     // Determine the first step (submodule + modal schema)
     const { submoduleId, modalSchemaId } = await pickerAlgorithmService.getNextStep({
@@ -111,9 +112,9 @@ export async function POST(request: Request) {
     // Determine the UI component (check for submodule override first)
     const uiComponent = submodule.overrides?.[modalSchemaId]?.uiComponentOverride || modalSchema.uiComponent;
 
-    // Record the first event (pass only questionData)
+    // Record the first event using the static method
     try {
-      await statisticsService.recordEvent({
+      await StatisticsService.recordEvent(supabase, {
         sessionId,
         submoduleId,
         modalSchemaId,

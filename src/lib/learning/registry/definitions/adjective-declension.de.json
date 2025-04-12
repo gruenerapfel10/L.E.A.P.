@@ -1,6 +1,6 @@
 {
   "id": "adjective-declension",
-  "title_en": "Adjective Declension (German)",
+  "title_en": "Adjective Declension",
   "supportedSourceLanguages": ["en", "fr", "es", "it"],
   "supportedTargetLanguages": ["de"],
   "localization": {

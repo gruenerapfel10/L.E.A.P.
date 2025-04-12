@@ -210,4 +210,34 @@ export const FillInGapMarkingSchema = z.object({
 // Note: You would stringify these Zod schemas when putting them into the AIConfig.
 // Example: JSON.stringify(MultipleChoiceQuestionSchema.shape) - needs careful handling of descriptions etc.
 // Or more simply, define the schema structure directly as a string within the module definition.
-// Using libraries like zod-to-json-schema might be helpful if generating schemas dynamically. 
+// Using libraries like zod-to-json-schema might be helpful if generating schemas dynamically.
+
+/**
+ * Represents a helper sheet in the floating library system
+ */
+export interface HelperSheet {
+  /** Unique identifier for this helper sheet */
+  id: string;
+  /** English title of the helper sheet */
+  title_en: string;
+  /** The content of the helper sheet in markdown format (English fallback) */
+  content: string; // Keep English content as fallback
+  /** Translated titles and content by language code */
+  localization: Record<string, { 
+    title: string; 
+    content: string; // Add localized content
+  }>;
+  /** Optional array of prerequisite helper sheet IDs that should be read before this one */
+  prerequisites?: string[];
+  /** Optional array of module IDs this helper sheet is directly linked to */
+  linkedModules?: string[];
+  /** Optional metadata about the helper sheet */
+  metadata?: {
+    /** CEFR level this helper sheet is relevant for */
+    cefrLevel?: string;
+    /** Tags for categorizing the helper sheet */
+    tags?: string[];
+    /** Last updated timestamp */
+    lastUpdated?: string;
+  };
+} 

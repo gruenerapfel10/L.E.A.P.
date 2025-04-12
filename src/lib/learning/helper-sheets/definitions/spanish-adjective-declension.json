@@ -1,0 +1,18 @@
+{
+  "id": "spanish-adjective-declension",
+  "title_en": "Spanish Adjective Agreement",
+  "localization": {
+    "es": {
+      "title": "Concordancia de Adjetivos",
+      "content": "# Concordancia de Adjetivos en Español\n\nEn español, los adjetivos deben concordar con los sustantivos que modifican en género y número. Hay dos patrones principales:\n\n## Género\n\n| Masculino | Femenino |\n|-----------|----------|\n| -o        | -a       |\n| -e        | -e       |\n| -consonante | -consonante |\n\nEjemplos:\n- alto → alta\n- inteligente → inteligente\n- azul → azul\n\n## Número\n\n| Singular | Plural |\n|----------|--------|\n| -o       | -os    |\n| -a       | -as    |\n| -e       | -es    |\n| -consonante | -es  |\n\nEjemplos:\n- alto → altos\n- alta → altas\n- inteligente → inteligentes\n- azul → azules\n\n## Reglas Especiales\n\n1. Adjetivos que terminan en -z cambian a -ces en plural:\n   - feliz → felices\n   - capaz → capaces\n\n2. Algunos adjetivos tienen la misma forma para masculino y femenino:\n   - joven, grande, común, etc.\n\n3. Adjetivos de nacionalidad que terminan en consonante añaden -a para el femenino:\n   - español → española\n   - francés → francesa"
+    }
+  },
+  "content": "# Spanish Adjective Agreement\n\nIn Spanish, adjectives must agree with the nouns they modify in both gender and number. There are two main patterns:\n\n## Gender\n\n| Masculine | Feminine |\n|-----------|----------|\n| -o        | -a       |\n| -e        | -e       |\n| -consonant | -consonant |\n\nExamples:\n- alto → alta\n- inteligente → inteligente\n- azul → azul\n\n## Number\n\n| Singular | Plural |\n|----------|--------|\n| -o       | -os    |\n| -a       | -as    |\n| -e       | -es    |\n| -consonant | -es  |\n\nExamples:\n- alto → altos\n- alta → altas\n- inteligente → inteligentes\n- azul → azules\n\n## Special Rules\n\n1. Adjectives ending in -z change to -ces in plural:\n   - feliz → felices\n   - capaz → capaces\n\n2. Some adjectives have the same form for masculine and feminine:\n   - joven, grande, común, etc.\n\n3. Nationality adjectives ending in a consonant add -a for feminine:\n   - español → española\n   - francés → francesa",
+  "prerequisites": [],
+  "linkedModules": ["adjective-declension"],
+  "metadata": {
+    "cefrLevel": "A1",
+    "tags": ["grammar", "adjectives", "agreement"],
+    "lastUpdated": "2024-03-21"
+  }
+} 

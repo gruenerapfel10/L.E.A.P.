@@ -1,4 +1,4 @@
-import { LucideProps, LayoutDashboard, BarChart3, Settings, Cpu, Languages, Book } from 'lucide-react';
+import { LucideProps, LayoutDashboard, BarChart3, Settings, Cpu, Languages, Book, BookOpen } from 'lucide-react';
 
 // Replace with actual SVG icons or components
 const Google = (props: LucideProps) => (
@@ -35,6 +35,10 @@ const BookIcon = (props: LucideProps) => (
   <Book {...props} />
 );
 
+const BookOpenIcon = (props: LucideProps) => (
+  <BookOpen {...props} />
+);
+
 export const Icons = {
   google: Google,
   apple: Apple,
@@ -43,4 +47,5 @@ export const Icons = {
   settings: SettingsIcon,
   languages: LanguagesIcon,
   book: BookIcon,
+  library: BookOpenIcon,
 }; 
