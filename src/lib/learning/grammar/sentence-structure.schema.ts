@@ -76,4 +76,4 @@ if (isDebugEnabled('GRAMMAR_SCHEMA')) {
 }
 */
 
-console.log("DEBUG: sentence-structure.schema.ts loaded"); // Basic load confirmation 
+// console.log("DEBUG: sentence-structure.schema.ts loaded"); // Basic load confirmation 

@@ -3,30 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { StatisticsService } from '@/lib/learning/statistics/statistics.service';
 import { moduleRegistryService } from '@/lib/learning/registry/module-registry.service';
 import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.service';
-
-// Initialize registries once
-let registriesInitialized = false;
-
-async function initializeRegistries() {
-  if (registriesInitialized) return;
-  try {
-    await Promise.all([
-      moduleRegistryService.initialize(),
-      modalSchemaRegistryService.initialize(),
-      // Initialize other dependent services if needed
-    ]);
-    registriesInitialized = true;
-    console.log("Learning Registries Initialized for Session End.");
-  } catch (error) {
-    console.error("Failed to initialize learning registries for Session End:", error);
-    throw new Error("Failed to initialize learning registries");
-  }
-}
+import { initializeLearningRegistries } from '@/lib/learning/registry/init';
 
 export async function POST(request: Request) {
   try {
-    // Ensure registries are initialized (might not be strictly necessary for ending, but good practice)
-    await initializeRegistries();
+    await initializeLearningRegistries();
 
     // Parse the request body
     const body = await request.json();

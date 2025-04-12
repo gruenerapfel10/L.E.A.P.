@@ -2,26 +2,13 @@ import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { moduleRegistryService } from '@/lib/learning/registry/module-registry.service';
 import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.service';
-
-// Initialize registries once
-let registriesInitialized = false;
-async function initializeRegistries() {
-  if (registriesInitialized) return;
-  try {
-    await Promise.all([
-      moduleRegistryService.initialize(),
-      modalSchemaRegistryService.initialize(),
-    ]);
-    registriesInitialized = true;
-  } catch (error) {
-    console.error("Failed to initialize learning registries for GET state:", error);
-    throw new Error("Failed to initialize learning registries");
-  }
-}
+import { initializeLearningRegistries } from '@/lib/learning/registry/init';
+import { Database } from '@/types/supabase';
+import { SubmoduleDefinition, ModuleDefinition } from '@/lib/learning/types/index';
 
 export async function GET(request: NextRequest) {
   try {
-    await initializeRegistries();
+    await initializeLearningRegistries();
 
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
@@ -73,8 +60,8 @@ export async function GET(request: NextRequest) {
     const firstEvent = sessionData.user_session_events[0];
 
     // 3. Get Submodule and Modal Schema details for titles/UI component
-    const moduleDef = moduleRegistryService.getModule(sessionData.module_id, sessionData.target_language);
-    const submoduleDef = moduleDef?.submodules.find(sub => sub.id === firstEvent.submodule_id);
+    const moduleDef: ModuleDefinition | null = moduleRegistryService.getModule(sessionData.module_id, sessionData.target_language);
+    const submoduleDef = moduleDef?.submodules.find((sub: SubmoduleDefinition) => sub.id === firstEvent.submodule_id);
     const modalSchemaDef = modalSchemaRegistryService.getSchema(firstEvent.modal_schema_id);
 
     if (!submoduleDef || !modalSchemaDef) {

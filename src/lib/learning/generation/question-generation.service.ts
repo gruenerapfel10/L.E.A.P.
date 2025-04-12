@@ -7,7 +7,7 @@ import { moduleRegistryService } from '../registry/module-registry.service';
 import { modalSchemaRegistryService } from '../modals/registry.service';
 import { structureConstraintService, GenerationConstraints, VocabTypeConstraint } from './structure-constraint.service'; // Import constraint service and renamed type
 import { vocabularyService, VocabularyItem } from '../vocabulary/vocabulary.service'; // Import vocab service
-import { ModuleDefinition, SubmoduleDefinition } from '@/lib/learning/types';
+import { ModuleDefinition, SubmoduleDefinition } from '@/lib/learning/types/index';
 import { ModalSchemaDefinition } from '@/lib/learning/modals/types';
 
 const DEBUG_GENERATION = isDebugMode('GENERATION');
@@ -40,48 +40,60 @@ export type TrueFalseQuestion = z.infer<typeof TrueFalseSchema>;
 export type MultipleChoiceQuestion = z.infer<typeof MultipleChoiceSchema>;
 export type FillInGapQuestion = z.infer<typeof FillInGapSchema>;
 
-// Define the return type for generation
-export interface GenerationResult {
-    questionData: any;
-    debugInfo?: {
-        constraints: GenerationConstraints;
-        requiredVocab: Record<string, VocabularyItem[]>;
-        enhancedPrompt?: string; // Optionally include the prompt
-    } | null;
-}
+// Zod schema for the combined output of generateQuestion
+export const GenerationResultOutputSchema = z.object({
+  questionData: z.any().describe("The structured data representing the generated question, specific to the modal schema."),
+  debugInfo: z.object({
+    constraintsUsed: z.any().optional(),
+    generatedSentenceStructure: z.any().optional(),
+    generatedErrors: z.any().optional(),
+    vocabularyUsed: z.array(z.any()).optional(),
+    rawAIOutput: z.any().optional()
+  }).optional().describe("Optional debugging information.")
+});
+export type GenerationResult = z.infer<typeof GenerationResultOutputSchema>;
 
-interface GenerateQuestionParams {
-  moduleId: string; // Keep for potential context, though definition is passed
-  submoduleId: string; // Keep for potential context
-  modalSchemaId: string; // Keep for potential context
-  
-  // Pass the actual definitions to avoid re-fetching
-  moduleDefinition: ModuleDefinition;
-  submoduleDefinition: SubmoduleDefinition;
-  modalSchemaDefinition: ModalSchemaDefinition;
-  
-  targetLanguage: string;
-  sourceLanguage: string;
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  forcedConstraints?: GenerationConstraints; // Add optional forced constraints
+// Define difficulty levels type
+export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+
+// Input parameters for generateQuestion
+export interface GenerateQuestionParams {
+    moduleId: string;
+    submoduleId: string;
+    modalSchemaId: string;
+    moduleDefinition: ModuleDefinition;
+    submoduleDefinition: SubmoduleDefinition;
+    modalSchemaDefinition: ModalSchemaDefinition;
+    targetLanguage: string;
+    sourceLanguage: string;
+    difficulty: DifficultyLevel; // Use constrained type
+    userId?: string;
+    forcedConstraints?: GenerationConstraints;
 }
 
 export class QuestionGenerationService {
 
   constructor() {
-    moduleRegistryService.initialize().catch(err => console.error("Failed to init ModuleRegistry in Generator", err));
-    modalSchemaRegistryService.initialize().catch(err => console.error("Failed to init ModalSchemaRegistry in Generator", err));
+    // REMOVED: Initialize calls moved elsewhere
+    // moduleRegistryService.initialize().catch(err => console.error("Failed to init ModuleRegistry in Generator", err));
+    // modalSchemaRegistryService.initialize().catch(err => console.error("Failed to init ModalSchemaRegistry in Generator", err));
   }
 
+  /**
+   * Generate a question based on the module, submodule, and modal schema.
+   */
   async generateQuestion(params: GenerateQuestionParams): Promise<GenerationResult> {
-    const { 
-      moduleId, submoduleId, modalSchemaId, // Keep IDs for logging/context
-      moduleDefinition: module, // Rename for clarity
-      submoduleDefinition: submodule, // Rename for clarity
-      modalSchemaDefinition: modalSchema, // Rename for clarity
-      targetLanguage, 
-      sourceLanguage, 
-      difficulty = 'beginner', 
+    const {
+      moduleId, 
+      submoduleId, 
+      modalSchemaId, 
+      moduleDefinition,
+      submoduleDefinition, 
+      modalSchemaDefinition, 
+      targetLanguage,
+      sourceLanguage,
+      difficulty,
+      userId, // Added userId
       forcedConstraints 
     } = params;
 
@@ -93,20 +105,20 @@ export class QuestionGenerationService {
     // const modalSchema = modalSchemaRegistryService.getSchema(modalSchemaId); // REMOVED
     
     // Validation: Ensure the passed definitions are valid
-    if (!module || !submodule || !modalSchema) {
+    if (!moduleDefinition || !submoduleDefinition || !modalSchemaDefinition) {
       // This should ideally not happen if the API route validates first, but good practice
       throw new Error(`Invalid definitions passed to generateQuestion for ${moduleId}/${submoduleId}/${modalSchemaId}`);
     }
     
     // Check if submodule supports the modal schema (remains valid)
-    if (!submodule.supportedModalSchemaIds?.includes(modalSchemaId)) {
+    if (!submoduleDefinition.supportedModalSchemaIds?.includes(modalSchemaId)) {
       throw new Error(`Submodule ${submoduleId} does not support modal schema ${modalSchemaId}`);
     }
 
     // --- Resolve Overrides (Submodule > Module > Modal Default) --- 
-    const submoduleOverride = submodule.overrides?.[modalSchemaId];
-    const moduleOverride = module.moduleOverrides?.[modalSchemaId]; // Use moduleOverrides
-    const modalDefault = modalSchema.generationConfig;
+    const submoduleOverride = submoduleDefinition.overrides?.[modalSchemaId];
+    const moduleOverride = moduleDefinition.moduleOverrides?.[modalSchemaId]; // Use moduleOverrides
+    const modalDefault = modalSchemaDefinition.generationConfig;
 
     // Determine final prompt template
     const basePromptTemplate = 
@@ -126,7 +138,7 @@ export class QuestionGenerationService {
       targetLanguage,
       sourceLanguage,
       difficulty,
-      submoduleContext: typeof submodule.submoduleContext === 'string' ? submodule.submoduleContext : JSON.stringify(submodule.submoduleContext),
+      submoduleContext: typeof submoduleDefinition.submoduleContext === 'string' ? submoduleDefinition.submoduleContext : JSON.stringify(submoduleDefinition.submoduleContext),
       // Add allowedErrorTypes to context if needed by prompts (might not be necessary)
       // allowedErrorTypesContext: allowedErrorTypes.join(', ') 
     };
@@ -140,7 +152,7 @@ export class QuestionGenerationService {
     let questionData: any | null = null;
 
     // --- 2. Determine Constraints and Fetch Vocabulary --- 
-    determinedConstraints = forcedConstraints ?? structureConstraintService.getConstraints({ language: targetLanguage, difficulty, submodule });
+    determinedConstraints = forcedConstraints ?? structureConstraintService.getConstraints({ language: targetLanguage, difficulty, submodule: submoduleDefinition });
     if (DEBUG_GENERATION) console.log(`[Generator Debug] Using constraints:`, determinedConstraints);
 
     let allVocabFetched = true; // Flag to track if all requests were successful
@@ -195,7 +207,7 @@ export class QuestionGenerationService {
             // Ensure constraints are not null for this path
             if (!determinedConstraints) throw new Error("Constraints required for sentence-error generation but were not available.");
             // Note: generateSentenceErrorQuestion calls AI service internally
-            questionData = await this.generateSentenceErrorQuestion(finalPrompt, targetLanguage, submodule, taskType, modalSchemaId, determinedConstraints, fetchedVocab, allowedErrorTypes);
+            questionData = await this.generateSentenceErrorQuestion(finalPrompt, targetLanguage, submoduleDefinition, taskType, modalSchemaId, determinedConstraints, fetchedVocab, allowedErrorTypes);
 
         } else if (modalSchemaId === 'true-false') {
              schemaToUse = TrueFalseSchema;
@@ -226,12 +238,19 @@ export class QuestionGenerationService {
         if (!questionData) { throw new Error(`AI service returned null data for schema ${modalSchemaId}.`); }
         
         // --- 5. Construct Final Result --- 
+        // Ensure the returned debugInfo matches the GenerationResultOutputSchema
+        const finalDebugInfo = determinedConstraints 
+            ? {
+                constraintsUsed: determinedConstraints, // Map to correct field
+                vocabularyUsed: Object.values(fetchedVocab).flat(), // Map to correct field
+                // Optionally add other fields if available
+                enhancedPrompt: finalPrompt // Keeping this for potential debugging
+              } 
+            : undefined; // Use undefined instead of null
+
         return {
             questionData,
-            // Use determinedConstraints used for the attempt, even if vocab was partial
-            debugInfo: determinedConstraints 
-                ? { constraints: determinedConstraints, requiredVocab: fetchedVocab, enhancedPrompt: finalPrompt } 
-                : null // Should ideally not be null now unless no constraints were generated
+            debugInfo: finalDebugInfo
         };
 
     } catch (error: unknown) {
@@ -390,4 +409,3 @@ export class QuestionGenerationService {
 }
 
 export const questionGenerationService = new QuestionGenerationService(); 
-console.log("DEBUG: question-generation.service.ts loaded");

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTranslation } from 'react-i18next';
-import i18n from "@/lib/i18n";
+import i18nClient from "@/lib/i18n.client";
 import { supportedLngs } from "@/lib/languages";
 import { useEffect, useState } from 'react';
 import { createClient } from "@/lib/supabase/client";
@@ -35,6 +35,11 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const getUser = async () => {
@@ -84,13 +89,13 @@ export function Navbar() {
               href="/#features"
               className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
             >
-              {t('nav.features')}
+              {isMounted ? t('nav.features') : null}
             </Link>
             <Link
               href="/#how-it-works"
               className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
             >
-              {t('nav.howItWorks')}
+              {isMounted ? t('nav.howItWorks') : null}
             </Link>
           </div>
 
@@ -199,14 +204,14 @@ export function Navbar() {
               className="block rounded-md px-3 py-2 text-base font-medium text-foreground/80 hover:bg-white/[0.02] dark:hover:bg-white/[0.02] hover:text-primary"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              {t('nav.features')}
+              {isMounted ? t('nav.features') : null}
             </Link>
             <Link
               href="/#how-it-works"
               className="block rounded-md px-3 py-2 text-base font-medium text-foreground/80 hover:bg-white/[0.02] dark:hover:bg-white/[0.02] hover:text-primary"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              {t('nav.howItWorks')}
+              {isMounted ? t('nav.howItWorks') : null}
             </Link>
              {/* Language Switcher Mobile */}
             <DropdownMenu modal={false}>

@@ -1,10 +1,8 @@
-'use client';
+'use client'
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Languages, Rocket, Sparkles, Users } from "lucide-react";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import clsx from "clsx"; // Import clsx for conditional classes
 import { useTranslation } from 'react-i18next'; // Import the hook
 import { useEffect, useState } from 'react'; // Import useState and useEffect
 import { AnimatedFast } from "@/components/animated-fast";
@@ -49,13 +47,18 @@ const renderGrid = (keyPrefix: string, offsets: number[]) => {
 
 export default function Home() {
   const { t } = useTranslation(); // Initialize the hook
+  const [isMounted, setIsMounted] = useState(false);
 
   // State for column offsets (keep this)
   const [columnOffsets, setColumnOffsets] = useState<number[]>([]);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     // Generate random offsets ONCE on component mount
-    const maxRandomOffsetRem = 15; 
+    const maxRandomOffsetRem = 15;
     setColumnOffsets([...Array(8)].map(() => -(Math.random() * maxRandomOffsetRem)));
   }, []); // Empty dependency array ensures this runs only once
 
@@ -96,41 +99,41 @@ export default function Home() {
               <div className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium mb-8 w-fit animate-fade-in-up hover:border-primary/50 transition-colors cursor-default group">
                 <Sparkles className="mr-2 h-4 w-4 animate-pulse text-primary" />
                 <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity">
-                  {t('home.revolutionizing')}
+                  {isMounted ? t('home.revolutionizing') : null}
                 </span>
               </div>
 
               {/* Main Title */}
               <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-6 animate-fade-in-up [animation-delay:200ms] flex flex-wrap items-center gap-2">
-                {t('home.heroTitle')}{" "}
+                {isMounted ? t('home.heroTitle') : null}{" "}
                 <AnimatedFast />
               </h1>
 
               {/* Subtitle */}
               <p className="text-xl text-muted-foreground mb-8 animate-fade-in-up [animation-delay:400ms] leading-relaxed">
-                {t('home.heroSubtitle')}
+                {isMounted ? t('home.heroSubtitle') : null}
               </p>
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-fade-in-up [animation-delay:600ms]">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
                   asChild
                 >
                   <Link href="/signup">
-                    {t('home.startJourney')}
+                    {isMounted ? t('home.startJourney') : null}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   variant="outline"
                   className="hover:bg-white/[0.02] dark:hover:bg-white/[0.02] transition-colors"
                   asChild
                 >
                   <Link href="#features">
-                    {t('home.learnMore')}
+                    {isMounted ? t('home.learnMore') : null}
                   </Link>
                 </Button>
               </div>
@@ -201,10 +204,10 @@ export default function Home() {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
-              {t('features.sectionTitle')}
+              {isMounted ? t('features.sectionTitle') : null}
             </h2>
             <p className="text-xl text-white/70 max-w-2xl mx-auto">
-              {t('features.sectionSubtitle')}
+              {isMounted ? t('features.sectionSubtitle') : null}
             </p>
           </div>
           
@@ -238,8 +241,8 @@ export default function Home() {
                   <div className="inline-flex p-3 rounded-xl bg-white/10 mb-6 text-white">
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 text-white">{t(feature.titleKey)}</h3>
-                  <p className="text-white/70 leading-relaxed">{t(feature.descriptionKey)}</p>
+                  <h3 className="text-xl font-semibold mb-3 text-white">{isMounted ? t(feature.titleKey) : null}</h3>
+                  <p className="text-white/70 leading-relaxed">{isMounted ? t(feature.descriptionKey) : null}</p>
                 </div>
               </div>
             ))}
@@ -252,10 +255,10 @@ export default function Home() {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20 animate-fade-in-up">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
-              {t('howItWorks.sectionTitle')}
+              {isMounted ? t('howItWorks.sectionTitle') : null}
             </h2>
             <p className="text-xl text-white/70 max-w-2xl mx-auto">
-              {t('howItWorks.sectionSubtitle')}
+              {isMounted ? t('howItWorks.sectionSubtitle') : null}
             </p>
           </div>
           
@@ -292,8 +295,8 @@ export default function Home() {
                   <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-white text-black flex items-center justify-center text-lg font-bold">
                     {step.step}
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 mt-4 text-center text-white">{t(step.titleKey)}</h3>
-                  <p className="text-white/70 text-center leading-relaxed">{t(step.descriptionKey)}</p>
+                  <h3 className="text-xl font-semibold mb-3 mt-4 text-center text-white">{isMounted ? t(step.titleKey) : null}</h3>
+                  <p className="text-white/70 text-center leading-relaxed">{isMounted ? t(step.descriptionKey) : null}</p>
                 </div>
               ))}
             </div>
@@ -306,10 +309,10 @@ export default function Home() {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
-              {t('testimonials.sectionTitle')}
+              {isMounted ? t('testimonials.sectionTitle') : null}
             </h2>
             <p className="text-xl text-white/70 max-w-2xl mx-auto">
-              {t('testimonials.sectionSubtitle')}
+              {isMounted ? t('testimonials.sectionSubtitle') : null}
             </p>
           </div>
           
@@ -341,16 +344,16 @@ export default function Home() {
               >
                 <div className="flex items-center mb-6">
                   <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center text-lg font-bold">
-                    {t(testimonial.nameKey).charAt(0)}
+                    {isMounted ? t(testimonial.nameKey).charAt(0) : null}
                   </div>
                   <div className="ml-4">
-                    <h3 className="font-semibold text-white">{t(testimonial.nameKey)}</h3>
-                    <p className="text-sm text-white/70">{t(testimonial.roleKey)}</p>
+                    <h3 className="font-semibold text-white">{isMounted ? t(testimonial.nameKey) : null}</h3>
+                    <p className="text-sm text-white/70">{isMounted ? t(testimonial.roleKey) : null}</p>
                   </div>
                 </div>
                 <blockquote className="relative">
                   <span className="absolute -top-2 -left-2 text-4xl text-white/20">"</span>
-                  <p className="text-white/70 leading-relaxed pl-4">{t(testimonial.quoteKey)}</p>
+                  <p className="text-white/70 leading-relaxed pl-4">{isMounted ? t(testimonial.quoteKey) : null}</p>
                 </blockquote>
               </div>
             ))}
@@ -365,10 +368,10 @@ export default function Home() {
             {/* Content */}
             <div className="relative text-center max-w-3xl mx-auto animate-fade-in-up">
               <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 text-white">
-                {t('cta.title')}
+                {isMounted ? t('cta.title') : null}
               </h2>
               <p className="text-xl mb-10 text-white/70">
-                {t('cta.subtitle')}
+                {isMounted ? t('cta.subtitle') : null}
               </p>
               <Button 
                 size="lg" 
@@ -376,7 +379,7 @@ export default function Home() {
                 asChild
               >
                 <Link href="/signup">
-                  {t('cta.button')}
+                  {isMounted ? t('cta.button') : null}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>

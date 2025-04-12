@@ -5,6 +5,8 @@ import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.servi
 import { moduleRegistryService } from '@/lib/learning/registry/module-registry.service';
 import { GenerationResult } from '@/lib/learning/generation/question-generation.service';
 import { GenerationConstraints } from '@/lib/learning/generation/structure-constraint.service';
+import { initializeLearningRegistries } from '@/lib/learning/registry/init';
+import { SubmoduleDefinition } from '@/lib/learning/types/index';
 
 // Define expected request body schema
 const generateBodySchema = z.object({
@@ -18,13 +20,9 @@ const generateBodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  // Ensure registries are initialized
-  await Promise.all([
-    modalSchemaRegistryService.initialize(),
-    moduleRegistryService.initialize(),
-  ]);
-
   try {
+    await initializeLearningRegistries();
+
     const body = await request.json();
     const validation = generateBodySchema.safeParse(body);
 
@@ -52,7 +50,7 @@ export async function POST(request: NextRequest) {
     if (!module) {
        return NextResponse.json({ error: `Module ${moduleId} not found for language ${targetLanguage}` }, { status: 404 });
     }
-    const submodule = module.submodules.find(sm => sm.id === forcedSubmoduleId);
+    const submodule = module.submodules.find((sm: SubmoduleDefinition) => sm.id === forcedSubmoduleId);
     if (!submodule) {
        return NextResponse.json({ error: `Submodule ${forcedSubmoduleId} not found in module ${moduleId}.` }, { status: 404 });
     }
@@ -71,8 +69,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Find the submodule definition within the correct module definition
-    const submoduleDef = moduleDef.submodules.find(sub => sub.id === forcedSubmoduleId);
-    if (!submoduleDef) {
+    const targetSubmodule = moduleDef.submodules.find((sub: SubmoduleDefinition) => sub.id === forcedSubmoduleId);
+    if (!targetSubmodule) {
        return NextResponse.json({ error: `Submodule definition ${forcedSubmoduleId} not found in module ${moduleId} for language ${targetLanguage}` }, { status: 404 });
     }
 
@@ -82,7 +80,7 @@ export async function POST(request: NextRequest) {
         submoduleId: forcedSubmoduleId,
         modalSchemaId: forcedModalSchemaId,
         moduleDefinition: moduleDef,
-        submoduleDefinition: submoduleDef,
+        submoduleDefinition: targetSubmodule,
         modalSchemaDefinition: schema,
         targetLanguage,
         sourceLanguage,
@@ -102,7 +100,7 @@ export async function POST(request: NextRequest) {
       newQuestionData: questionData, 
       newSubmoduleId: forcedSubmoduleId,
       newModalSchemaId: forcedModalSchemaId,
-      newSubmoduleTitle: submoduleDef.localization[targetLanguage]?.title || submoduleDef.title_en,
+      newSubmoduleTitle: targetSubmodule.localization[targetLanguage]?.title || targetSubmodule.title_en,
       newUiComponent: schema.uiComponent,
       // Pass debug info back to the client (debug menu)
       questionDebugInfo: debugInfo 

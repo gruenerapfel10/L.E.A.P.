@@ -88,5 +88,4 @@ export class VocabularyService {
 // Create a singleton instance
 export const vocabularyService = new VocabularyService();
 
-// Basic load confirmation
-console.log("DEBUG: vocabulary.service.ts loaded"); 
+// console.log("DEBUG: vocabulary.service.ts loaded"); 

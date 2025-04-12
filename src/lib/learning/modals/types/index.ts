@@ -39,5 +39,4 @@ export interface ModalSchemaDefinition {
   uiComponent: string;
 }
 
-// Basic load confirmation
-console.log("DEBUG: modals/types/index.ts loaded"); 
+// console.log("DEBUG: modals/types/index.ts loaded"); 

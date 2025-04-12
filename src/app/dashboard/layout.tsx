@@ -1,6 +1,8 @@
-import { ReactNode, memo } from 'react';
+'use client';
+
+import { ReactNode, memo, useEffect, useState } from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 import { DashboardSidebar, type SidebarNavItem } from '@/components/dashboard-sidebar';
 import { DashboardHeader } from '@/components/dashboard-header';
 
@@ -70,76 +72,112 @@ function getDebugSubscriptionInfo() {
   return null;
 }
 
-export default async function DashboardLayout({
+interface ProfileData {
+  id: string;
+  email: string;
+  full_name?: string;
+  plan: string;
+  subscription_status: string;
+}
+
+export default function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  console.log("[DashboardLayout] Fetching user data...");
-  const supabase = await createClient();
+  const [userData, setUserData] = useState<{
+    name: string;
+    email: string;
+    initial: string;
+    plan: string;
+    subscription_status: string;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+  useEffect(() => {
+    async function fetchUserData() {
+      const supabase = createClient();
+      
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-  if (authError || !authUser) {
-    console.log("[DashboardLayout] Auth error or no user found, redirecting to login.");
-    redirect('/login');
-  }
+      if (authError || !authUser) {
+        console.log("[DashboardLayout] Auth error or no user found, redirecting to login.");
+        redirect('/login');
+        return;
+      }
 
-  console.log(`[DashboardLayout] Auth user found: ${authUser.id}, Email: ${authUser.email}`);
+      console.log(`[DashboardLayout] Auth user found: ${authUser.id}, Email: ${authUser.email}`);
 
-  // Check for debug mode
-  const debugInfo = getDebugSubscriptionInfo();
-  if (debugInfo) {
-    console.log('[DashboardLayout] Debug mode enabled:', debugInfo);
-  }
+      // Check for debug mode
+      const debugInfo = getDebugSubscriptionInfo();
+      if (debugInfo) {
+        console.log('[DashboardLayout] Debug mode enabled:', debugInfo);
+      }
 
-  // Fetch profile data separately to get the latest subscription status
-  console.log(`[DashboardLayout] Fetching profile data for user: ${authUser.id}`);
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', authUser.id)
-    .single();
+      // Fetch profile data separately to get the latest subscription status
+      console.log(`[DashboardLayout] Fetching profile data for user: ${authUser.id}`);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single() as { data: ProfileData | null };
 
-  console.log('[DashboardLayout] Profile data:', profile);
+      console.log('[DashboardLayout] Profile data:', profile);
 
-  if (!profile) {
-    console.log('[DashboardLayout] No profile found, creating one');
-    const { error: insertError } = await supabase
-      .from('profiles')
-      .insert([
-        { 
-          id: authUser.id,
-          email: authUser.email,
-          plan: debugInfo?.plan || 'free',
-          subscription_status: debugInfo?.subscription_status || 'inactive'
+      if (!profile) {
+        console.log('[DashboardLayout] No profile found, creating one');
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: authUser.id,
+              email: authUser.email,
+              plan: debugInfo?.plan || 'free',
+              subscription_status: debugInfo?.subscription_status || 'inactive'
+            }
+          ]);
+
+        if (insertError) {
+          console.error('[DashboardLayout] Error creating profile:', insertError);
+          throw insertError;
         }
-      ]);
+      }
+      
+      // Combine data, prioritizing debug mode if enabled
+      const displayName = profile?.full_name || authUser.user_metadata?.full_name || authUser.email || 'User';
+      const displayInitial = displayName?.charAt(0).toUpperCase() || '?';
+      const userEmail = authUser.email || '';
+      
+      // Use debug values if enabled, otherwise use profile values
+      const userPlan = debugInfo ? debugInfo.plan : (profile?.plan || 'free');
+      const subscriptionStatus = debugInfo ? debugInfo.subscription_status : (profile?.subscription_status || 'inactive');
+      
+      console.log(`[DashboardLayout] Final user data for rendering - Name: ${displayName}, Email: ${userEmail}, Plan: ${userPlan}, Status: ${subscriptionStatus}`);
 
-    if (insertError) {
-      console.error('[DashboardLayout] Error creating profile:', insertError);
-      throw insertError;
+      setUserData({
+        name: displayName,
+        email: userEmail,
+        initial: displayInitial,
+        plan: userPlan,
+        subscription_status: subscriptionStatus
+      });
+      setIsLoading(false);
     }
-  }
-  
-  // Combine data, prioritizing debug mode if enabled
-  const displayName = profile?.full_name || authUser.user_metadata?.full_name || authUser.email || 'User';
-  const displayInitial = displayName?.charAt(0).toUpperCase() || '?';
-  const userEmail = authUser.email || '';
-  
-  // Use debug values if enabled, otherwise use profile values
-  const userPlan = debugInfo ? debugInfo.plan : (profile?.plan || 'free');
-  const subscriptionStatus = debugInfo ? debugInfo.subscription_status : (profile?.subscription_status || 'inactive');
-  
-  console.log(`[DashboardLayout] Final user data for rendering - Name: ${displayName}, Email: ${userEmail}, Plan: ${userPlan}, Status: ${subscriptionStatus}`);
 
-  const userData = {
-    name: displayName,
-    email: userEmail,
-    initial: displayInitial,
-    plan: userPlan,
-    subscription_status: subscriptionStatus
-  };
+    fetchUserData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-current border-t-transparent text-primary"></div>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return null; // Will redirect in useEffect
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background relative">

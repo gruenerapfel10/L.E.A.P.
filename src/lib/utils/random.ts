@@ -19,5 +19,4 @@ export function shuffleArray<T>(array: T[]): void {
   }
 }
 
-// Basic load confirmation
-console.log("DEBUG: random.ts loaded"); 
+// export const randomUtils = new RandomUtils(); 

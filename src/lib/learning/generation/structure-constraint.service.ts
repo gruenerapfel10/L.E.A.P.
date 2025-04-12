@@ -1,5 +1,5 @@
 import { isDebugMode } from '@/lib/utils/debug';
-import { SubmoduleDefinition } from '../types'; // Import base types
+import { SubmoduleDefinition } from '@/lib/learning/types/index'; // Corrected import path
 
 const DEBUG_CONSTRAINT_SERVICE = isDebugMode('CONSTRAINT_SERVICE');
 
@@ -118,6 +118,3 @@ export class StructureConstraintService {
 
 // Create a singleton instance
 export const structureConstraintService = new StructureConstraintService();
-
-// Basic load confirmation
-console.log("DEBUG: structure-constraint.service.ts loaded");

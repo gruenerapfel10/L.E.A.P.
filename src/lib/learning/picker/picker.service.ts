@@ -1,5 +1,5 @@
 import { moduleRegistryService } from '../registry/module-registry.service';
-import { SessionEvent } from '../types';
+import { SessionEvent } from '../types/index';
 import { modalSchemaRegistryService } from '../modals/registry.service';
 
 interface PickNextParams {
@@ -77,9 +77,10 @@ export class PickerAlgorithmService {
   private activeStrategy: string = 'random';
   
   constructor() {
+    // REMOVED: Initialize calls moved elsewhere
     // Ensure registries are initialized before use - might need a better async handling pattern
-    moduleRegistryService.initialize().catch(err => console.error("Failed to init ModuleRegistry in Picker", err));
-    modalSchemaRegistryService.initialize().catch(err => console.error("Failed to init ModalSchemaRegistry in Picker", err));
+    // moduleRegistryService.initialize().catch(err => console.error("Failed to init ModuleRegistry in Picker", err));
+    // modalSchemaRegistryService.initialize().catch(err => console.error("Failed to init ModalSchemaRegistry in Picker", err));
   }
   
   /**

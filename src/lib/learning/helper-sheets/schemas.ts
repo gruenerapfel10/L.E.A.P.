@@ -17,7 +17,7 @@ const HelperSheetMetadataSchema = z.object({
 export const HelperSheetSchema = z.object({
   id: z.string(),
   title_en: z.string(),
-  content: z.string(), // English content
+  content: z.string().describe("The main content of the helper sheet (markdown supported)."),
   localization: HelperSheetLocalizationSchema,
   prerequisites: z.array(z.string()).optional(),
   linkedModules: z.array(z.string()).optional(),
@@ -27,4 +27,4 @@ export const HelperSheetSchema = z.object({
 // Type inference
 export type ZodHelperSheet = z.infer<typeof HelperSheetSchema>;
 
-console.log("DEBUG: Helper Sheet Zod Schema loaded"); 
+// console.log("DEBUG: Helper Sheet Zod Schema loaded"); 
