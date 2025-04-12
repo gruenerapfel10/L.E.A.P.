@@ -31,19 +31,38 @@ export class AIService {
   /**
    * Generate structured data conforming to a Zod schema using the Vercel AI SDK.
    *
-   * @param prompt The user prompt including necessary context.
+   * @param prompt The user prompt including necessary context and placeholders.
    * @param zodSchema The Zod schema defining the desired output structure.
    * @param schemaName A descriptive name for the schema (for logging).
    * @returns The validated data object matching the schema, or null if generation/validation fails after retries.
    */
-  async generateStructuredData<T extends z.ZodType<any, any>>(prompt: string, zodSchema: T, schemaName: string): Promise<z.infer<T> | null> {
+  async generateStructuredData<T extends z.ZodType<any, any>>(
+    prompt: string, // Back to original parameter name
+    zodSchema: T, 
+    schemaName: string 
+    // REMOVED inputData parameter
+  ): Promise<z.infer<T> | null> {
+    
+    // REMOVED prompt compilation logic
+    const finalPrompt = prompt; // Use the prompt directly as passed
+
     if (DEBUG_AI_SERVICE) {
-      console.log(`[AI Service/Vercel SDK Debug] Generating object for schema '${schemaName}' with prompt: "${prompt.substring(0, 100)}..."`);
+      console.log(`[AI Service/Vercel SDK Debug] Generating object for schema '${schemaName}'`);
+      // Log the raw prompt received
+      console.log(`[AI Service/Vercel SDK Debug] Using prompt (first 200 chars): "${finalPrompt.substring(0, 200)}..."`); 
     }
 
-    const model = this.google(this.modelName); // Get the model instance
+    const model = this.google(this.modelName); 
     let attempts = 0;
     let lastError: any = null;
+
+    // --- LOG FINAL PROMPT --- 
+    console.log("\n===========================================================");
+    console.log(`[AI Service] FINAL PROMPT Sent to AI for Schema: ${schemaName}`);
+    console.log("-----------------------------------------------------------");
+    console.log(finalPrompt); // Log the complete final prompt
+    console.log("===========================================================\n");
+    // ------------------------
 
     while (attempts <= MAX_RETRIES) {
       try {
@@ -54,15 +73,12 @@ export class AIService {
              console.log(`[AI Service/Vercel SDK Debug] Calling generateObject with model ${this.modelName}...`);
          }
          
-        // Use generateObject from Vercel AI SDK
         const result: GenerateObjectResult<z.infer<T>> = await generateObject({
           model: model,
           schema: zodSchema,
-          prompt: prompt, // Pass the full prompt
-          mode: 'json', // Explicitly request JSON mode (though often inferred)
-          // System prompt can be added here if needed:
-          // system: "You are an assistant...", 
-          temperature: 0.8, // Example parameter
+          prompt: finalPrompt, // Use the direct prompt
+          mode: 'json', 
+          temperature: 0.8, 
         });
         
         if (DEBUG_AI_SERVICE) {
@@ -101,4 +117,4 @@ export class AIService {
 
 // Create a singleton instance
 export const aiService = new AIService();
-console.log("DEBUG: ai.service.ts loaded (using Vercel AI SDK)"); 
+console.log("DEBUG: ai.service.ts loaded (using Vercel AI SDK) - REVERTED"); // Added REVERTED note 

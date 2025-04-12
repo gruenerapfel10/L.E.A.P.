@@ -5,7 +5,7 @@ import { useDrag, useDrop, ConnectDragSource, ConnectDropTarget } from 'react-dn
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowLeft, Hash } from 'lucide-react';
 import type { XYCoord } from 'react-dnd';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -187,7 +187,7 @@ interface Tab {
   id: string;
   title: string;
   icon?: React.ReactNode;
-  iconType?: 'fileQuestion' | 'bookOpen' | 'bot' | 'percent';
+  iconType?: 'fileQuestion' | 'bookOpen' | 'bot' | 'percent' | 'hash';
 }
 
 // Interface for the item being dragged
@@ -224,6 +224,7 @@ function TabItem({ tab, isActive, windowId, nodeId, onTabClick, onCloseTab }: Ta
       case 'bookOpen': return <BookOpenIcon isActive={isActive} />;
       case 'bot': return <BotIcon isActive={isActive} />;
       case 'percent': return <PercentIcon isActive={isActive} />;
+      case 'hash': return <Hash className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />;
       default: return tab.icon;
     }
   };

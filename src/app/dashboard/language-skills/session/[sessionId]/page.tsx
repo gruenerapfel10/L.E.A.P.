@@ -18,7 +18,7 @@ import { WritingFillInGapComponent } from '@/components/learning/interactions/Wr
 import { ReadingTrueFalseComponent } from '@/components/learning/interactions/ReadingTrueFalse';
 import { DebugMenu } from '@/components/learning/debug-menu';
 import { WritingCorrectIncorrectSentence } from '@/components/learning/interactions/WritingCorrectIncorrectSentence';
-import { ModuleDefinition, SubmoduleDefinition, HelperResource } from '@/lib/learning/types';
+import { ModuleDefinition, SubmoduleDefinition, HelperResource, HelperSheet } from '@/lib/learning/types/index';
 import { TabSystem, type LayoutNode } from '@/components/learning/TabSystem';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -28,10 +28,14 @@ import { useChat, type Message } from '@ai-sdk/react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { loadHelperSheets } from '@/lib/learning/helper-sheets/loader';
 import { helperSheetRegistry } from '@/lib/learning/helper-sheets/helper-sheet-registry';
-import type { HelperSheet } from '@/lib/learning/types';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { User } from '@supabase/supabase-js';
+
+// Key for localStorage
+const ACTIVE_SESSION_ID_KEY = 'activeLearningSessionId';
 
 // Language code to name mapping
 const languageNames: Record<string, string> = {
@@ -122,7 +126,7 @@ interface SessionPageProps {
 // Note: Content will now be fetched via getContentForTab
 const generateInitialLayout = (): LayoutNode => ({
   id: 'root_split', 
-  type: 'split' as const, 
+  type: 'split' as const,
   direction: 'horizontal' as const,
   sizes: [70, 30], // Adjust split size (70% left, 30% right)
   children: [
@@ -144,8 +148,9 @@ const generateInitialLayout = (): LayoutNode => ({
         { id: 'helper', title: 'Helper Sheet', iconType: 'bookOpen' as const },
         { id: 'ai_assistant', title: 'AI Assistant', iconType: 'bot' as const },
         { id: 'stats', title: 'Stats', iconType: 'percent' as const },
+        { id: 'debug', title: 'Debug', iconType: 'hash' as const },
       ],
-      activeTabId: 'helper', // Default to Helper Sheet tab
+      activeTabId: 'debug', // <-- Set Debug tab as active by default
       isCollapsed: false,
     }
   ],
@@ -184,6 +189,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   const router = useRouter();
   const { i18n } = useTranslation();
   const [selectedHelperSheetId, setSelectedHelperSheetId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   // State for the main session logic
   const [state, setState] = useState<SessionState>(() => ({
@@ -218,6 +224,11 @@ export default function SessionPage({ params }: SessionPageProps) {
   const [layout, setLayout] = useState<LayoutNode | null>(null); // Initialize as null
 
   // --- Effects --- 
+  // Load helper sheets once on mount
+  useEffect(() => {
+    loadHelperSheets();
+  }, []);
+
   // Initialize layout state once session data is loaded
   useEffect(() => {
     if (!state.isLoading && state.currentQuestionData && !layout) {
@@ -239,7 +250,6 @@ export default function SessionPage({ params }: SessionPageProps) {
     stop: stopChat
   } = useChat({
     api: '/api/chat',
-    // Add initial message containing the sessionId (ensure state.sessionId is available)
     initialMessages: state.sessionId ? [
       { id: 'init-session', role: 'system', content: `SESSION_ID::${state.sessionId}` }
     ] : [],
@@ -248,12 +258,56 @@ export default function SessionPage({ params }: SessionPageProps) {
     },
   });
 
+  // --- Custom Chat Submit Handler to Inject Context ---
+  const handleChatSubmitWithContext = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent default form submission
+
+    // Construct context string
+    let questionContext = `[Current Question Context]\n`;
+    questionContext += `Submodule: ${state.currentSubmoduleTitle || 'N/A'}\n`;
+    questionContext += `Question Data: ${JSON.stringify(state.currentQuestionData) || 'N/A'}\n`;
+    questionContext += `Status: ${state.isAnswered ? 'Answered' : 'Not Answered'}\n`;
+    if (state.isAnswered && state.markResult) {
+      questionContext += `Result: ${state.markResult.isCorrect ? 'Correct' : 'Incorrect'}\n`;
+      questionContext += `AI Feedback: ${state.markResult.feedback || 'N/A'}\n`;
+      questionContext += `Correct Answer Provided: ${state.markResult.correctAnswer || 'N/A'}\n`;
+    }
+    questionContext += `[/Current Question Context]\n\n`;
+    
+    // Prepare the body with standard fields + context
+    const bodyPayload = {
+      userId: user?.id,
+      targetLanguage: state.targetLanguage,
+      sourceLanguage: state.sourceLanguage,
+      questionContext: questionContext, // Add the context here
+    };
+
+    console.log("[Chat Submit] Sending context:", questionContext); // For debugging
+
+    // Call original handleSubmit with the current input and the enhanced body
+    handleChatSubmit(e, { 
+      // Pass the body directly in the ChatRequestOptions object
+      body: bodyPayload,
+    });
+  };
+  // ----------------------------------------------------
+
   // useEffect to fetch the initial session state and set up tab activation listener
   useEffect(() => {
     let isMounted = true;
-    
-    // Fetch initial session data
+    const supabase = createClient();
+
+    // Fetch initial session data AND user data
     async function fetchInitialData() {
+      // Fetch User first
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (isMounted) {
+          setUser(authUser);
+      }
+      if (!authUser) {
+         console.warn("No authenticated user found. Chat might not function correctly.");
+      }
+
       if (!state.sessionId) {
         if (isMounted) setState(prev => ({ ...prev, isLoading: false, error: "No Session ID provided." }));
         return;
@@ -281,6 +335,9 @@ export default function SessionPage({ params }: SessionPageProps) {
         console.log("Fetched initial session state:", initialData); // Added log
 
         if (isMounted) {
+          // Store the active session ID
+          localStorage.setItem(ACTIVE_SESSION_ID_KEY, initialData.sessionId);
+
           // Populate state with fetched data, including module/submodule objects
           setState(prev => ({
             ...prev,
@@ -300,6 +357,8 @@ export default function SessionPage({ params }: SessionPageProps) {
         }
       } catch (error) {
         console.error('Error fetching initial session data:', error);
+        // Clear potentially invalid stored ID on error
+        localStorage.removeItem(ACTIVE_SESSION_ID_KEY); 
         if (isMounted) {
           setState(prev => ({ 
             ...prev, 
@@ -315,6 +374,8 @@ export default function SessionPage({ params }: SessionPageProps) {
     // Clean up function
     return () => { 
       isMounted = false;
+      // Optional: Consider if cleanup should remove the ID if component unmounts unexpectedly
+      // localStorage.removeItem(ACTIVE_SESSION_ID_KEY); // Uncomment carefully if needed
     };
 
   }, [state.sessionId]); // Keep dependency
@@ -341,13 +402,13 @@ export default function SessionPage({ params }: SessionPageProps) {
       userAnswer: null,
       isAnswered: false,
       markResult: null,
-      error: null, 
-      bufferedNextStep: null, 
-      bufferedNextQuestionData: null, 
+      error: null,
+      bufferedNextStep: null,
+      bufferedNextQuestionData: null,
       bufferedNextQuestionDebugInfo: null,
       // Find the new submodule definition from the existing module state
       // Note: This assumes the module definition doesn't change mid-session
-      currentSubmodule: prev.currentModule?.submodules.find(s => s.id === data.newSubmoduleId) ?? null,
+      currentSubmodule: prev.currentModule?.submodules.find((s: SubmoduleDefinition) => s.id === data.newSubmoduleId) ?? null,
       // Note: Session stats are NOT updated here, as this is a debug action
     }));
   };
@@ -355,6 +416,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   // Handle submitting an answer
   const handleSubmitAnswer = async () => {
     // Check using correct state properties
+    console.log(`[Submit Answer] Attempting submit. Current state.sessionId: ${state.sessionId}`); // <-- Log sessionId on frontend
     if (!state.sessionId || !state.moduleId || !state.currentSubmoduleId || !state.currentModalSchemaId || !state.currentQuestionData) {
       console.error("Missing required state for submission");
       return;
@@ -410,11 +472,40 @@ export default function SessionPage({ params }: SessionPageProps) {
 
   // Handle proceeding to the next question state
   const handleNextQuestion = () => {
+     console.log("handleNextQuestion called. State snapshot:", { 
+         isLoading: state.isLoading, 
+         error: state.error, 
+         currentModuleExists: !!state.currentModule, 
+         bufferedNextStepExists: !!state.bufferedNextStep, 
+         isAnswered: state.isAnswered 
+     }); // Log key state parts
+
      // Check buffer has next step info AND next question data
      if (state.bufferedNextStep && state.bufferedNextQuestionData) { 
+         console.log("Buffered next step exists:", state.bufferedNextStep); // Log buffer
+         
+         // Add checks for currentModule and submodules array
+         if (!state.currentModule || !state.currentModule.submodules) {
+             console.error("Current module or submodules not found in state.");
+             setState(prev => ({ ...prev, error: "Internal error: Module data missing." }));
+             return;
+         }
+         console.log("Current module exists:", { id: state.currentModule.id, title: state.currentModule.title_en }); // Log current module ID/title
+
          // Find the next submodule definition from the current module
-         const nextSubmoduleDef = state.currentModule?.submodules.find(s => s.id === state.bufferedNextStep!.submoduleId) ?? null;
-         console.log("Next Submodule Def:", nextSubmoduleDef); // Added log
+         const nextSubmoduleId = state.bufferedNextStep!.submoduleId;
+         console.log(`Finding submodule with ID: ${nextSubmoduleId} within module ${state.currentModule.id}`); // Log ID being searched
+         const nextSubmoduleDef = state.currentModule.submodules.find((s: SubmoduleDefinition) => s.id === nextSubmoduleId) ?? null;
+         console.log("Found nextSubmoduleDef:", nextSubmoduleDef ? { id: nextSubmoduleDef.id, title: nextSubmoduleDef.title_en } : null); // Log result of find
+
+         // Add check for nextSubmoduleDef
+         if (!nextSubmoduleDef) { // This is around the reported line 457
+             console.error(`Next submodule definition not found for ID: ${nextSubmoduleId}`);
+             setState(prev => ({ ...prev, error: `Internal error: Could not find submodule ${nextSubmoduleId}.` }));
+             return;
+         }
+         console.log("Proceeding to update state with nextSubmoduleDef:", { id: nextSubmoduleDef.id }); // Log before setState
+
          setState(prev => ({
            ...prev,
            // Apply next step info
@@ -437,11 +528,12 @@ export default function SessionPage({ params }: SessionPageProps) {
            bufferedNextQuestionDebugInfo: null, 
          }));
      } else if (!state.bufferedNextStep && state.isAnswered) {
+         console.log("No buffered next step, ending session.");
          // Session ends if answered but no next step was buffered
          handleEndSession();
      } else {
          // Fallback
-         console.warn("handleNextQuestion called unexpectedly, ending session.");
+         console.warn("handleNextQuestion called unexpectedly. State:", { bufferedNextStepExists: !!state.bufferedNextStep, isAnswered: state.isAnswered });
          handleEndSession();
      }
   };
@@ -452,6 +544,8 @@ export default function SessionPage({ params }: SessionPageProps) {
      setState(prev => ({ ...prev, isEnding: true }));
      try {
        console.log(`Ending session: ${state.sessionId}`);
+       // Clear the session ID from storage
+       localStorage.removeItem(ACTIVE_SESSION_ID_KEY); 
        // Add API call to end session on backend if needed
        router.replace('/dashboard/language-skills');
      } catch (error) {
@@ -567,13 +661,13 @@ export default function SessionPage({ params }: SessionPageProps) {
       messages={chatMessages}
       input={chatInput}
       handleInputChange={handleChatInputChange}
-      handleSubmit={handleChatSubmit}
+      handleSubmit={handleChatSubmitWithContext}
       isLoading={isChatLoading}
       error={chatError}
       reload={reloadChat}
       stop={stopChat}
     />
-  ), [chatMessages, chatInput, handleChatInputChange, handleChatSubmit, isChatLoading, chatError, reloadChat, stopChat]); // Dependencies
+  ), [chatMessages, chatInput, handleChatInputChange, handleChatSubmitWithContext, isChatLoading, chatError, reloadChat, stopChat]); // Restore handler dependency
 
   const statsTabContent = useCallback(() => (
     <div className="h-full w-full flex flex-col">
@@ -658,7 +752,7 @@ export default function SessionPage({ params }: SessionPageProps) {
 
   // Helper function to get localized title/content
   const getLocalizedSheetData = (sheet: HelperSheet | undefined) => {
-    if (!sheet) return { title: 'Error', content: 'Sheet not found' };
+    if (!sheet) return { title: 'N/A', content: 'Helper sheet not found.' };
     const lang = i18n.language;
     const localized = sheet.localization[lang];
     return {
@@ -717,7 +811,7 @@ export default function SessionPage({ params }: SessionPageProps) {
         // --- Get prerequisite sheets (based on the LANGUAGE-RELEVANT primary sheet) ---
         const prerequisiteSheets = (primaryModuleSheet.prerequisites || [])
               .map((id: string) => helperSheetRegistry.getHelperSheet(id))
-              .filter((sheet): sheet is HelperSheet => sheet !== undefined);
+              .filter((sheet: HelperSheet | undefined): sheet is HelperSheet => sheet !== undefined);
 
         const isViewingPrerequisite = selectedHelperSheetId !== null && selectedHelperSheetId !== primaryModuleSheet.id;
 
@@ -827,10 +921,47 @@ export default function SessionPage({ params }: SessionPageProps) {
         return aiAssistantTabContent();
       case 'stats':
         return statsTabContent();
+      case 'debug':
+        return (
+          <div className="p-4">
+            <DebugMenu 
+              sessionState={state} 
+              onQuestionGenerated={handleDebugQuestionGenerated}
+            />
+          </div>
+        );
       default:
         return null;
     }
   }, [state.moduleId, questionTabContent, aiAssistantTabContent, statsTabContent, i18n.language, selectedHelperSheetId]);
+
+  // Add keyboard event handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // --- ADDED CHECK: Ignore if Enter is pressed in a textarea (like the chat input) ---
+      if (event.key === 'Enter' && event.target instanceof HTMLTextAreaElement) {
+        return; 
+      }
+      // -------------------------------------------------------------------------------------
+
+      // Only handle Enter key (if not in textarea)
+      if (event.key === 'Enter') {
+        // If we have an answer and haven't submitted yet, submit the answer
+        if (state.userAnswer !== undefined && !state.isAnswered && !state.isSubmitting) {
+          handleSubmitAnswer();
+        }
+        // If the question has been answered and marked, go to next question
+        else if (state.isAnswered && state.markResult && !state.isSubmitting) {
+          handleNextQuestion();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [state.userAnswer, state.isAnswered, state.isSubmitting, state.markResult]); // Add markResult to dependencies
 
   // --- Render Logic --- 
   if (state.isLoading) { 
@@ -842,7 +973,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   }
 
   if (!state.sessionId) { 
-      return ( <div className="text-center text-red-500 p-8">Error: No Session ID found. <Button onClick={() => router.push('/dashboard/language-skills')} variant="outline">Back</Button></div> ); 
+      return ( <div className="text-center text-red-500 p-8">Error: No Session ID found. <Button onClick={() => router.push('/dashboard/language-skills')} variant="outline">Back</Button></div> );
   }
   
   // Session Ended state (check after loading and errors)
@@ -856,9 +987,6 @@ export default function SessionPage({ params }: SessionPageProps) {
        console.warn("No currentQuestionData found after loading without error."); // Added log
        return ( <div className="text-center text-muted-foreground p-8">Could not load question data. <Button onClick={() => router.push('/dashboard/language-skills')} variant="outline">Back</Button></div> );
   }
-
-  // Load helper sheets
-  loadHelperSheets();
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -905,9 +1033,10 @@ export default function SessionPage({ params }: SessionPageProps) {
                 variant="outline"
                 size="sm"
                 className="h-8 px-3 text-muted-foreground hover:text-primary hover:bg-primary/10 border-border/50 cursor-pointer transition-all"
-                onClick={() => router.push('/dashboard/language-skills')}
+                onClick={handleEndSession}
+                disabled={state.isEnding}
               >
-                End Session
+                {state.isEnding ? 'Ending...' : 'End Session'}
               </Button>
               <Popover>
                 <PopoverTrigger asChild>
@@ -937,13 +1066,6 @@ export default function SessionPage({ params }: SessionPageProps) {
             getContentForTab={getContentForTab} // Pass the content getter
           />
         </div>
-
-        {process.env.NODE_ENV === 'development' && 
-          <DebugMenu 
-            sessionState={state} 
-            onQuestionGenerated={handleDebugQuestionGenerated}
-          />
-        }
       </div>
     </DndProvider>
   );

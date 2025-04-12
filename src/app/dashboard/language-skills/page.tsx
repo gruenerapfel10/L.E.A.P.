@@ -24,6 +24,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+// Key for localStorage - MUST match the key used in the session page
+const ACTIVE_SESSION_ID_KEY = 'activeLearningSessionId';
+
 const languageNames: Record<string, string> = {
   en: 'English',
   de: 'Deutsch',
@@ -47,6 +50,20 @@ export default function LanguageSkillsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [supportedConcepts, setSupportedConcepts] = useState<ModuleConcept[]>([]);
   const [performanceData, setPerformanceData] = useState<Record<string, ModulePerformance | null>>({});
+
+  // Effect to check for and resume active session
+  useEffect(() => {
+    const activeSessionId = localStorage.getItem(ACTIVE_SESSION_ID_KEY);
+    if (activeSessionId) {
+      console.log(`Found active session ${activeSessionId}, redirecting...`);
+      // Redirect immediately if an active session exists
+      router.replace(`/dashboard/language-skills/session/${activeSessionId}`);
+      // No need to set loading to false here, as we are navigating away
+    } else {
+      // Only proceed with normal initialization if no active session is found
+      setIsLoading(false); // Set loading to false *only* if not redirecting
+    }
+  }, [router]); // Dependency on router
 
   const fetchSupportedConcepts = useCallback(async (lang: string) => {
     if (!lang) return;
@@ -108,9 +125,14 @@ export default function LanguageSkillsPage() {
     }
   }, [user]);
 
+  // Main initialization effect (runs *after* the redirect check OR if no redirect needed)
   useEffect(() => {
+    // If isLoading is true, it means the redirect effect hasn't finished or didn't redirect
+    // If isLoading is false, it means the redirect check completed and found no session
+    if (isLoading) return; // Don't run initialization if we are still checking/redirecting
+
     const initializePage = async () => {
-      setIsLoading(true);
+      // No need to set isLoading(true) here again
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
@@ -131,21 +153,23 @@ export default function LanguageSkillsPage() {
         setUserLanguage(initialUserLang);
         setTargetLanguage(initialTargetLang);
 
-        await fetchSupportedConcepts(initialTargetLang);
+        await fetchSupportedConcepts(initialTargetLang); // This now fetches concepts
 
-  } catch (error) {
+      } catch (error) {
         console.error("Error initializing page:", error);
         toast.error("Failed to initialize page.");
-      } finally {
-        setIsLoading(false);
       }
+      // No finally block needed to set isLoading(false) as it's handled by the redirect check
     };
+
     initializePage();
-  }, [router]);
+  }, [isLoading, router, fetchSupportedConcepts]); // Add isLoading and fetchSupportedConcepts
 
   useEffect(() => {
+    // Don't fetch performance if still loading/redirecting
+    if (isLoading) return;
     fetchPerformanceData(supportedConcepts);
-  }, [supportedConcepts, fetchPerformanceData]);
+  }, [isLoading, supportedConcepts, fetchPerformanceData]); // Add isLoading
 
   const handleTargetLanguageChange = async (newLanguage: string) => {
     if (newLanguage === targetLanguage) return;
@@ -175,37 +199,12 @@ export default function LanguageSkillsPage() {
   const showNoModulesMessage = !isLoading && !isFetchingConcepts && !conceptsAvailable;
 
   if (isLoading) {
-  return (
-    <div className="space-y-8 p-8">
-      <div 
-          className="rounded-lg p-6 text-white bg-muted"
-      >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-              <Skeleton className="w-12 h-12 rounded-[20%]" />
-              <div>
-                <Skeleton className="h-8 w-48 mb-2" />
-                <Skeleton className="h-4 w-64" />
-              </div>
-            </div>
-            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-              <div className="flex gap-2">
-                <Skeleton className="h-10 w-[180px]" />
-              </div>
-              <div className="flex gap-2">
-                <Skeleton className="h-10 w-[180px]" />
-                <Skeleton className="h-10 w-[180px]" />
-              </div>
-            </div>
-          </div>
+    // Show a simple loading indicator while checking for active session
+    // Or keep the existing skeleton if preferred, but it might flash briefly if redirecting
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <p>Loading...</p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, index) => (
-            <ModuleCardSkeleton key={index} />
-          ))}
-        </div>
-      </div>
     );
   }
 
@@ -267,13 +266,13 @@ export default function LanguageSkillsPage() {
                       <svg className="w-full h-full" viewBox="0 0 100 100">
                         <defs>
                           <filter id="border">
-                            <feMorphology operator="dilate" radius="1" in="SourceAlpha" result="thicken" />
-                            <feFlood flood-color="white" result="white" />
-                            <feComposite in="white" in2="thicken" operator="in" result="border" />
-                            <feMerge>
-                              <feMergeNode in="border" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
+                            <feMorphology operator="dilate" radius="0.5" in="SourceAlpha" result="thicken" />
+                            <feOffset dy="1" />
+                            <feGaussianBlur stdDeviation="1" />
+                            <feComposite operator="out" in2="SourceAlpha" />
+                            <feFlood floodColor="white" result="white" />
+                            <feComposite operator="in" in2="white" />
+                            <feComposite operator="in" in2="SourceGraphic" />
                           </filter>
                         </defs>
                         <image 

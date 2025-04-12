@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { moduleRegistryService } from '@/lib/learning/registry/module-registry.service';
 import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.service';
-import { StatisticsService } from '@/lib/learning/statistics/statistics.service';
-import { pickerAlgorithmService } from '@/lib/learning/picker/picker.service';
-import { questionGenerationService } from '@/lib/learning/generation/question-generation.service';
 import { markingService } from '@/lib/learning/marking/marking.service';
-import { GenerationResult } from '@/lib/learning/generation/question-generation.service';
+import { questionGenerationService, GenerationResult } from '@/lib/learning/generation/question-generation.service';
+import { pickerAlgorithmService } from '@/lib/learning/picker/picker.service';
+import { StatisticsService } from '@/lib/learning/statistics/statistics.service';
+import { initializeLearningRegistries } from '@/lib/learning/registry/init';
+import { SubmoduleDefinition } from '@/lib/learning/types/index';
+import { ModalSchemaDefinition } from '@/lib/learning/modals/types';
 
 // Initialize registries once
 let registriesInitialized = false;
@@ -36,54 +38,97 @@ interface SubmitBody {
   userAnswer: any;
   targetLanguage: string;
   sourceLanguage: string;
+  difficulty?: string;
 }
 
 export async function POST(request: Request) {
   try {
     // Ensure registries are initialized
-    await initializeRegistries();
+    await initializeLearningRegistries();
 
     // Parse request body
-    const body = await request.json();
-    const { sessionId, submoduleId, modalSchemaId, questionData, userAnswer } = body;
+    const body: SubmitBody = await request.json();
+    const { 
+      sessionId,
+      moduleId,
+      submoduleId, 
+      modalSchemaId, 
+      questionData, 
+      userAnswer, 
+      targetLanguage, 
+      sourceLanguage
+    } = body;
 
-    if (!sessionId || !submoduleId || !modalSchemaId || !questionData || userAnswer === undefined) {
+    console.log(`[Submit API] Received request for sessionId: ${sessionId}`);
+
+    // Validate all required fields from the body
+    if (!sessionId || !moduleId || !submoduleId || !modalSchemaId || !questionData || userAnswer === undefined || !targetLanguage || !sourceLanguage) {
+      console.warn("[Submit API] Missing required fields in body:", body);
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Create Supabase client
+    // Create Supabase server client
     const supabase = await createClient();
 
     // Get user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      console.warn("Unauthorized attempt to submit answer for session:", sessionId);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Optional: Verify user owns the session (add similar check as in /end if needed)
 
-    // Get module ID and languages from the session
-    const { data: sessionData, error: sessionError } = await supabase
-      .from('user_learning_sessions')
-      .select('module_id, target_language, source_language')
-      .eq('id', sessionId)
-      .single();
+    // --- REMOVED Fetching difficulty from session as column doesn't exist ---
+    // const { data: sessionData, error: sessionError } = await supabase
+    //   .from('user_learning_sessions')
+    //   .select('difficulty') 
+    //   .eq('id', sessionId)
+    //   .single();
 
-    if (sessionError || !sessionData) {
-      console.error('Error fetching session data:', sessionError);
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    // if (sessionError || !sessionData) {
+    //   console.error('Error fetching session data:', sessionError);
+    //   return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    // }
+    // const difficulty = sessionData.difficulty ?? 'intermediate'; 
+    const difficulty = 'intermediate'; // <-- Use default difficulty for now
+    // --------------------------------------------------------------------
+
+    // Retrieve module and submodule definitions
+    const moduleDef = moduleRegistryService.getModule(moduleId, targetLanguage);
+    if (!moduleDef) {
+      console.error(`Module definition not found for ID: ${moduleId}, Language: ${targetLanguage}`);
+      return NextResponse.json({ error: `Internal error: Module ${moduleId} not found.` }, { status: 500 });
     }
-    const { module_id: moduleId, target_language: targetLanguage, source_language: sourceLanguage } = sessionData;
+    
+    const submoduleDef = moduleDef.submodules.find((sub: SubmoduleDefinition) => sub.id === submoduleId);
+    if (!submoduleDef) {
+      console.error(`Submodule definition not found for ID: ${submoduleId} in Module: ${moduleId}`);
+      return NextResponse.json({ error: `Internal error: Submodule ${submoduleId} not found.` }, { status: 500 });
+    }
+
+    // Retrieve modal schema definition
+    const modalSchemaDef = modalSchemaRegistryService.getSchema(modalSchemaId);
+    if (!modalSchemaDef) {
+        console.error(`Modal schema definition not found for ID: ${modalSchemaId}`);
+        return NextResponse.json({ error: `Internal error: Modal schema ${modalSchemaId} not found.` }, { status: 500 });
+    }
 
     // Mark the user's answer
     const markingResult = await markingService.markAnswer({
-      moduleId,
-      submoduleId,
-      modalSchemaId,
-      questionData,
-      userAnswer,
-      targetLanguage,
-      sourceLanguage,
+      moduleId: moduleId,
+      submoduleId: submoduleId,
+      modalSchemaId: modalSchemaId,
+      moduleDefinition: moduleDef,
+      submoduleDefinition: submoduleDef,
+      modalSchemaDefinition: modalSchemaDef,
+      questionData: questionData,
+      userAnswer: userAnswer,
+      targetLanguage: targetLanguage,
+      sourceLanguage: sourceLanguage,
+      difficulty: difficulty,
+      userId: user.id, 
+      sessionId: sessionId,
     });
 
     // Record the event using the static method
@@ -111,7 +156,7 @@ export async function POST(request: Request) {
     // Get details for the next step
     const module = moduleRegistryService.getModule(moduleId, targetLanguage);
     if (!module) throw new Error(`Module ${moduleId} not found`); // Should ideally not happen if session exists
-    const nextSubmodule = module.submodules.find(sub => sub.id === nextStep.submoduleId);
+    const nextSubmodule = module.submodules.find((sub: SubmoduleDefinition) => sub.id === nextStep.submoduleId);
     const nextModalSchema = modalSchemaRegistryService.getSchema(nextStep.modalSchemaId);
     if (!nextSubmodule || !nextModalSchema) {
       throw new Error(`Could not find next submodule (${nextStep.submoduleId}) or modal schema (${nextStep.modalSchemaId})`);
@@ -127,6 +172,7 @@ export async function POST(request: Request) {
       modalSchemaDefinition: nextModalSchema,
       targetLanguage,
       sourceLanguage,
+      difficulty: difficulty,
     });
 
     // Determine the UI component for the next question

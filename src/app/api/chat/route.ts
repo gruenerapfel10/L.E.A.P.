@@ -15,9 +15,10 @@ export const dynamic = 'force-dynamic';
 // Define Zod schema for the incoming request body
 const chatRequestBodySchema = z.object({
   messages: z.array(z.any()), // Keep messages flexible for now
-  userId: z.string(),
+  userId: z.string().optional(), // Allow optional userId if user might not be logged in
   targetLanguage: z.string(),
   sourceLanguage: z.string(),
+  questionContext: z.string().optional(), // Add optional question context
 });
 
 // Define the system prompt template
@@ -43,11 +44,17 @@ export async function POST(req: Request) {
     await initializeLearningRegistries();
 
     const body = await req.json();
+    
+    // --- ADDED: Log the full request body --- 
+    console.log("\n[API Chat Request Body RECEIVED]:", JSON.stringify(body, null, 2));
+    // ----------------------------------------
+
     const validation = chatRequestBodySchema.safeParse(body);
     if (!validation.success) {
+       console.error("[API Chat Validation Error]:", validation.error.flatten()); // Log validation errors
        return new Response(JSON.stringify({ error: 'Invalid request body', details: validation.error.flatten() }), { status: 400 });
     }
-    const { messages: validatedMessages, userId: validatedUserId, targetLanguage: validatedTargetLanguage, sourceLanguage: validatedSourceLanguage } = validation.data;
+    const { messages: validatedMessages, userId: validatedUserId, targetLanguage: validatedTargetLanguage, sourceLanguage: validatedSourceLanguage, questionContext: validatedQuestionContext } = validation.data; // Extract context
 
     let sessionId: string | null = null;
     const coreMessages = [];
@@ -111,7 +118,11 @@ export async function POST(req: Request) {
     const result = await streamText({
       model: openai('gpt-4-turbo-preview'),
       system: systemPrompt,
-      messages: coreMessages,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...(validatedQuestionContext ? [{ role: 'system', content: `[Current Question Context]\n${validatedQuestionContext}[/Current Question Context]` }] : []),
+        ...coreMessages
+      ],
     });
 
     return result.toDataStreamResponse();

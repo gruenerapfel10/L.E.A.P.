@@ -19,6 +19,8 @@ import {
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useTranslation } from 'react-i18next';
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 interface DashboardHeaderProps {
   user: {
@@ -31,6 +33,14 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ user, navItems }: DashboardHeaderProps) {
   const { t } = useTranslation();
+  const supabase = createClient();
+  const router = useRouter();
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
   
   return (
     <header className="flex h-16 w-full items-center gap-4 border-b border-border/80 bg-sidebar px-4 md:px-6 relative z-10">
@@ -81,7 +91,7 @@ export function DashboardHeader({ user, navItems }: DashboardHeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               {t('nav.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
