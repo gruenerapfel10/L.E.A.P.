@@ -12,6 +12,9 @@ import {
   Settings,
   ChevronRight,
   Library,
+  Pencil,
+  Ear,
+  Mic,
 } from 'lucide-react';
 import { ReadingMultipleChoiceComponent } from '@/components/learning/interactions/ReadingMultipleChoice';
 import { WritingFillInGapComponent } from '@/components/learning/interactions/WritingFillInGap';
@@ -33,6 +36,11 @@ import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { MultipleChoiceModal } from '@/components/learning/interactions/MultipleChoiceModal';
+import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.service';
+import ReadingIdentifyErrorComponent from '@/components/learning/interactions/ReadingIdentifyError';
+import WritingReplaceErrorComponent from '@/components/learning/interactions/WritingReplaceError';
+import SpeakingConversation from '@/components/learning/interactions/SpeakingConversation';
 
 // Key for localStorage
 const ACTIVE_SESSION_ID_KEY = 'activeLearningSessionId';
@@ -190,6 +198,7 @@ export default function SessionPage({ params }: SessionPageProps) {
   const { i18n } = useTranslation();
   const [selectedHelperSheetId, setSelectedHelperSheetId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isRegistryReady, setIsRegistryReady] = useState(false);
 
   // State for the main session logic
   const [state, setState] = useState<SessionState>(() => ({
@@ -224,6 +233,17 @@ export default function SessionPage({ params }: SessionPageProps) {
   const [layout, setLayout] = useState<LayoutNode | null>(null); // Initialize as null
 
   // --- Effects --- 
+  // Initialize Modal Registry
+  useEffect(() => {
+    modalSchemaRegistryService.initialize().then(() => {
+      setIsRegistryReady(true);
+      console.log("Modal Schema Registry initialized (from SessionPage)");
+    }).catch(error => {
+      console.error("Failed to initialize modal registry from SessionPage:", error);
+      // Optionally set an error state here
+    });
+  }, []); // Run once on mount
+
   // Load helper sheets once on mount
   useEffect(() => {
     loadHelperSheets();
@@ -567,23 +587,34 @@ export default function SessionPage({ params }: SessionPageProps) {
      }
      
      const commonProps = {
+       data: state.currentQuestionData,
+       onAnswer: (answer: any) => setState(prev => ({ ...prev, userAnswer: answer })),
+       isMarked: state.isAnswered,
+       isCorrect: state.markResult?.isCorrect,
+       feedback: state.markResult?.feedback,
+       disabled: state.isAnswered,
        questionData: state.currentQuestionData,
        userAnswer: state.userAnswer,
        isAnswered: state.isAnswered,
        markResult: state.markResult,
        onAnswerChange: (answer: any) => setState(prev => ({ ...prev, userAnswer: answer })),
-       disabled: state.isAnswered || state.isSubmitting,
      };
  
      switch (state.currentUiComponent) {
-       case 'ReadingMultipleChoice':
-         return <ReadingMultipleChoiceComponent {...commonProps} />;
+       case 'MultipleChoiceModal':
+         return <MultipleChoiceModal {...commonProps} />;
        case 'WritingFillInGap':
          return <WritingFillInGapComponent {...commonProps} />;
        case 'ReadingTrueFalse':
          return <ReadingTrueFalseComponent {...commonProps} />;
+       case 'ReadingIdentifyError':
+         return <ReadingIdentifyErrorComponent {...commonProps} />;
+       case 'WritingReplaceError':
+         return <WritingReplaceErrorComponent {...commonProps} />;
        case 'WritingCorrectIncorrectSentence':
          return <WritingCorrectIncorrectSentence {...commonProps} />;
+       case 'SpeakingConversation':
+         return <SpeakingConversation {...commonProps} />;
        default:
          console.warn(`Rendering fallback: UI component not found for ID: ${state.currentUiComponent}`);
          return <div className="text-red-500">Error: Unknown interaction type ({state.currentUiComponent}).</div>;
@@ -988,6 +1019,19 @@ export default function SessionPage({ params }: SessionPageProps) {
        return ( <div className="text-center text-muted-foreground p-8">Could not load question data. <Button onClick={() => router.push('/dashboard/language-skills')} variant="outline">Back</Button></div> );
   }
 
+  // Get modal details for the header - ONLY IF REGISTRY IS READY
+  const currentModalDefinition = isRegistryReady && state.currentModalSchemaId 
+    ? modalSchemaRegistryService.getSchema(state.currentModalSchemaId)
+    : null;
+
+  const modalFamilyName = currentModalDefinition?.modalFamily 
+    ? currentModalDefinition.modalFamily.replace(/-/g, ' ') 
+    : (isRegistryReady ? 'Unknown Family' : 'Loading...'); // Better fallback based on registry state
+  
+  const modalTaskTypeName = currentModalDefinition?.title_en || 
+                          state.currentModalSchemaId?.replace(/-/g, ' ') || 
+                          (isRegistryReady ? 'Unknown Task' : 'Loading...'); // Better fallback
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex flex-col h-full w-full relative">
@@ -998,7 +1042,7 @@ export default function SessionPage({ params }: SessionPageProps) {
               <h1 className="text-lg font-semibold text-foreground">
                 {languageNames[state.targetLanguage] || state.targetLanguage.toUpperCase()} Session
               </h1>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary">
                   <BookOpen className="h-3 w-3" />
                   {state.currentModule?.title_en || 'Loading...'}
@@ -1009,9 +1053,27 @@ export default function SessionPage({ params }: SessionPageProps) {
                   {state.currentSubmoduleTitle || 'Loading...'}
                 </span>
                 <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent/10 text-accent-foreground">
+                {/* Display Interaction Type */}
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-600/10 text-purple-600">
+                  {currentModalDefinition?.interactionType === 'reading' && <BookOpen className="h-3 w-3" />}
+                  {currentModalDefinition?.interactionType === 'writing' && <Pencil className="h-3 w-3" />}
+                  {currentModalDefinition?.interactionType === 'listening' && <Ear className="h-3 w-3" />}
+                  {currentModalDefinition?.interactionType === 'speaking' && <Mic className="h-3 w-3" />}
+                  {currentModalDefinition?.interactionType ? 
+                    currentModalDefinition.interactionType.charAt(0).toUpperCase() + currentModalDefinition.interactionType.slice(1) 
+                    : 'Interaction'}
+                </span>
+                <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+                {/* Display Modal Family */}
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-teal-600/10 text-teal-600">
                   <Puzzle className="h-3 w-3" />
-                  {state.currentModalSchemaId?.replace(/-/g, ' ') || 'Loading...'}
+                  {modalFamilyName}
+                </span>
+                <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+                {/* Display Specific Task Type (Modal Title) */}
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent/10 text-accent-foreground">
+                  <FileQuestion className="h-3 w-3" /> 
+                  {modalTaskTypeName}
                 </span>
               </div>
             </div>

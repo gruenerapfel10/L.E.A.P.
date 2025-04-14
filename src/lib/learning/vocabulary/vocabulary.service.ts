@@ -28,6 +28,26 @@ export class VocabularyService {
 
     const supabase = await createClient();
     
+    // TEMPORARY SIMPLIFIED IMPLEMENTATION: Just get random words
+    // Ignore most constraints except for language and limit
+    const { data, error } = await supabase
+      .from('vocabulary_entries')
+      .select('*')
+      .eq('language_code', language)
+      .order('id') // Using order instead of random() for better performance
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching vocabulary:', error);
+      throw new Error(`Failed to fetch vocabulary: ${error.message}`);
+    }
+
+    if (DEBUG_VOCAB) console.log(`[Vocab Service] Fetched ${data?.length || 0} items using simplified method.`);
+    
+    return data || [];
+    
+    // ORIGINAL IMPLEMENTATION (COMMENTED OUT)
+    /*
     // Call the updated RPC function
     const { data, error } = await supabase.rpc('get_random_vocabulary', {
       p_language: language,
@@ -46,6 +66,7 @@ export class VocabularyService {
     
     // The RPC function now returns the correct type directly
     return data || [];
+    */
   }
 
   // --- Add new methods for interacting with the relational structure (Examples) --- 

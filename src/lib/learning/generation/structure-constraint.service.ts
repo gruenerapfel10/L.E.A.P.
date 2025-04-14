@@ -61,7 +61,10 @@ export class StructureConstraintService {
         }
 
         // --- Determine Theme (Example Logic) ---
+        // TEMPORARY: Setting theme to null to simplify 
         let inferredTheme: string | null = null;
+        
+        /* ORIGINAL THEME INFERENCE CODE (COMMENTED OUT)
         const contextString = typeof submodule.submoduleContext === 'string' ? submodule.submoduleContext.toLowerCase() : '';
         // Simple keyword check - expand this as needed
         if (contextString.includes('haus') || contextString.includes('wohnung')) {
@@ -76,6 +79,7 @@ export class StructureConstraintService {
         if (inferredTheme && DEBUG_CONSTRAINT_SERVICE) {
              console.log(`[Constraint Service Debug] Inferred theme: ${inferredTheme}`);
         }
+        */
 
         // --- Default Logic --- 
         const defaultConstraints: GenerationConstraints = {
@@ -88,6 +92,13 @@ export class StructureConstraintService {
             vocabularyTheme: inferredTheme, // Use the inferred theme
         };
 
+        // TEMPORARY: Simplified constraints - just request minimal vocabulary
+        defaultConstraints.posConstraints = [
+            { pos: 'NOUN', count: 1 },
+            { pos: 'VERB', count: 1 }
+        ];
+
+        /* ORIGINAL CONSTRAINT LOGIC (COMMENTED OUT)
         // Use the new field name 'pos'
         if (submodule.id.startsWith('adjective-declension')) {
             defaultConstraints.posConstraints.push({ pos: 'NOUN', count: 1 });
@@ -107,8 +118,9 @@ export class StructureConstraintService {
             // Add adverb occasionally
              if (Math.random() < 0.3) defaultConstraints.posConstraints.push({ pos: 'ADVERB', count: 1 }); 
         }
+        */
         
-         if (DEBUG_CONSTRAINT_SERVICE) {
+        if (DEBUG_CONSTRAINT_SERVICE) {
             console.log(`[Constraint Service Debug] Determined Constraints:`, defaultConstraints);
         }
 

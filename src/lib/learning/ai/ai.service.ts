@@ -14,7 +14,7 @@ export class AIService {
   // Use the Vercel AI SDK Google provider factory
   private google;
   // Stick to 1.5 flash for now, supports generateObject well
-  private readonly modelName = 'models/gemini-1.5-flash-latest'; 
+  private readonly modelName = 'models/gemini-2.0-flash-001'; 
 
   constructor() {
     const apiKey = process.env.GOOGLE_API_KEY;

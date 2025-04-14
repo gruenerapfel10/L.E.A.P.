@@ -81,6 +81,7 @@ export interface SubmoduleDefinition {
   overrides?: Record<string, Partial<SubmoduleModalOverride>>; // Use Partial<> 
   /** Optional array of help resources for this submodule */
   helpers?: HelperResource[];
+  primaryTask?: string; // Add primaryTask property (optional)
 }
 
 /**
@@ -106,6 +107,7 @@ export interface ModuleDefinition {
   submodules: SubmoduleDefinition[];
   /** Optional array of help resources for this module */
   helpers?: HelperResource[];
+  primaryTask?: string; // Add primaryTask property (optional)
 }
 
 /**

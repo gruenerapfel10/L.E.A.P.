@@ -3,6 +3,7 @@
   "title_en": "Adjective Declension",
   "supportedSourceLanguages": ["en", "fr", "es", "it"],
   "supportedTargetLanguages": ["de"],
+  "primaryTask": "This module is about Adjective Declension in German.",
   "localization": {
     "de": {
       "title": "Adjektiv Deklination"
@@ -20,25 +21,10 @@
           "title": "Nach bestimmte Artikel"
         }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "sentence-error-identify", "sentence-error-replace"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation"],
       "submoduleContext": "Focuses on adjective endings after definite articles (der, die, das, etc.) in different cases (Nominative, Accusative, Dative, Genitive).",
-      "overrides": {
-        "multiple-choice": {
-          "generationPromptOverride": "Primary task: Generate a CORRECT example sentence... demonstrating an ATTRIBUTIVE adjective after a DEFINITE article... **SECOND Requirement: MUST use these words: {requiredVocabList}.** Adhere to structure... AFTER generating the sentence: Generate `question`... Put **COMPLETE** sentence in `sentence` field. Put adjective base form in `targetWordBase`. Provide 4 distinct adjective **ENDING** options (e.g., 'e', 'en'). **DO NOT provide verbs as options.** Format JSON..."
-        },
-        "fill-in-gap": {
-          "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE word relevant to the context (preferably an adjective or article) with '___'. Provide the sentence template and the correct answer. Format the output as JSON. Source language for context: {sourceLanguage}."
-        },
-        "true-false": {
-           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a TRUE/FALSE statement about the adjective declension rules demonstrated. Format the output as JSON. Source language for context: {sourceLanguage}."
-        },
-        "sentence-error-identify": {
-            "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
-        },
-        "sentence-error-replace": {
-            "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
-        }
-      },
+      "primaryTask": "Generate a sentence using definite articles (der, die, das) with adjectives, where the adjective takes the weak declension pattern (-e in nominative singular for all genders, -en in all other cases). The adjective must follow a definite article and demonstrate the correct weak ending.",
+      "overrides": {},
       "helpers": [
         {
           "title": "Weak Declension Table (After Definite Articles)",
@@ -55,22 +41,14 @@
           "title": "Nach unbestimmte Artikel"
         }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "sentence-error-identify", "sentence-error-replace"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation"],
       "submoduleContext": "Focuses on adjective endings after indefinite articles (ein, eine, einen, etc.) and possessive determiners (mein, dein, sein, etc.) in different cases.",
-       "overrides": {
-        "multiple-choice": {
-          "generationPromptOverride": "Primary task: Generate a CORRECT example sentence... demonstrating an ATTRIBUTIVE adjective after an INDEFINITE article/POSSESSIVE... **SECOND Requirement: MUST use these words: {requiredVocabList}.** Adhere to structure... AFTER generating the sentence: Generate `question`... Put **COMPLETE** sentence in `sentence` field. Put adjective base form in `targetWordBase`. Provide 4 distinct adjective **ENDING** options. **DO NOT provide verbs as options.** Format JSON..."
-        },
-        "fill-in-gap": {
-          "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE word relevant to the context (preferably an adjective or article) with '___'. Provide the sentence template and the correct answer. Format the output as JSON. Source language for context: {sourceLanguage}."
-        },
-         "true-false": {
-           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use definite articles (der, die, das, etc.)**. THEN, using that generated sentence, create a TRUE/FALSE statement about the adjective declension rules demonstrated. Format the output as JSON. Source language for context: {sourceLanguage}."
-        },
-        "sentence-error-identify": {
+      "primaryTask": "Generate a sentence using indefinite articles (ein, eine) or possessive determiners (mein, dein) with adjectives, where the adjective takes the mixed declension pattern (-er/-es/-e in nominative singular depending on gender, -en in all other cases). The adjective must follow an indefinite article/possessive and demonstrate the correct mixed ending.",
+      "overrides": {
+        "identify-error": {
             "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
         },
-        "sentence-error-replace": {
+        "replace-error": {
             "allowedErrorTypes": ["ARTICLE_ENDING", "ADJECTIVE_ENDING"]
         }
       },
@@ -90,22 +68,14 @@
           "title": "Ohne Artikel (Starke Deklination)"
         }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "sentence-error-identify", "sentence-error-replace"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation"],
       "submoduleContext": "Focuses on adjective endings when there is no article before the adjective (strong declension), often used with plurals or certain prepositions.",
+      "primaryTask": "Generate a sentence using adjectives without any articles, where the adjective takes the strong declension pattern (-er/-es/-e in nominative singular, -en/-em/-er in other cases). The adjective must stand alone (no article) and demonstrate the correct strong ending.",
       "overrides": {
-         "multiple-choice": {
-          "generationPromptOverride": "Primary task: Generate a CORRECT example sentence... demonstrating an ATTRIBUTIVE adjective with NO article... **SECOND Requirement: MUST use these words: {requiredVocabList}.** Adhere to structure... AFTER generating the sentence: Generate `question`... Put **COMPLETE** sentence in `sentence` field. Put adjective base form in `targetWordBase`. Provide 4 distinct adjective **ENDING** options. **DO NOT provide verbs as options.** Format JSON..."
-        },
-        "fill-in-gap": {
-          "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use NO article before the adjective (strong declension)**. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE word relevant to the context (preferably an adjective or article) with '___'. Provide the sentence template and the correct answer. Format the output as JSON. Source language for context: {sourceLanguage}."
-        },
-        "true-false": {
-           "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT example sentence in {targetLanguage} for a {difficulty} learner. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}, AND **strictly use NO article before the adjective (strong declension)**. THEN, using that generated sentence, create a TRUE/FALSE statement about the adjective declension rules demonstrated. Format the output as JSON. Source language for context: {sourceLanguage}."
-        },
-        "sentence-error-identify": {
+        "identify-error": {
             "allowedErrorTypes": ["ADJECTIVE_ENDING"]
         },
-        "sentence-error-replace": {
+        "replace-error": {
             "allowedErrorTypes": ["ADJECTIVE_ENDING"]
         }
       },

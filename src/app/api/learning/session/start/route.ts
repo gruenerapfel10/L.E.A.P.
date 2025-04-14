@@ -5,7 +5,6 @@ import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.servi
 import { StatisticsService } from '@/lib/learning/statistics/statistics.service';
 import { pickerAlgorithmService } from '@/lib/learning/picker/picker.service';
 import { questionGenerationService } from '@/lib/learning/generation/question-generation.service';
-import { SubmoduleDefinition } from '@/lib/learning/types';
 import { GenerationResult } from '@/lib/learning/generation/question-generation.service';
 
 // Initialize registries once

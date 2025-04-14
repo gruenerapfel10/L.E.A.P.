@@ -1,101 +1,84 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { WordPopover } from './WordPopover';
+import { cn } from '@/lib/utils';
+import HintButton from './HintButton';
 
 interface InteractionProps {
-  questionData: any;
-  userAnswer: any;
+  questionData: {
+    question: string;
+    statement: string;
+    isTrue?: boolean;
+    explanation?: string;
+    hint?: string;
+    showHint?: boolean;
+    topic?: string;
+  };
+  userAnswer: boolean | null; // User selects true or false
   isAnswered: boolean;
   markResult: any | null;
-  onAnswerChange: (answer: any) => void;
+  onAnswerChange: (answer: boolean | null) => void;
   disabled: boolean;
 }
 
-const wrapWords = (text: string | null | undefined, textLang: string, displayLang: string): React.ReactNode => {
-    if (!text) return null;
-    return text.split(/(\s+)/).map((segment, index) => {
-        if (/^\s+$/.test(segment)) {
-            return <React.Fragment key={`space-${index}`}>{segment}</React.Fragment>;
-        }
-        if (segment.length > 0) {
-            return (
-            <WordPopover 
-                key={`${segment}-${index}`} 
-                word={segment} 
-                language={textLang} 
-                displayLanguage={displayLang}
-            >
-                {segment}
-            </WordPopover>
-            );
-        }
-        return null;
-    });
-};
-
 export const ReadingTrueFalseComponent: React.FC<InteractionProps> = (
-    { questionData, userAnswer, isAnswered, markResult, onAnswerChange, disabled }
+  { questionData, userAnswer, isAnswered, markResult, onAnswerChange, disabled }
 ) => {
-  const selectedValue = typeof userAnswer === 'boolean' ? userAnswer : null;
-  const correctAnswer = questionData.isCorrectAnswerTrue;
-  const textLanguage = 'de';
-  const displayLanguage = 'en';
 
-  const getVariant = (value: boolean) => {
-    if (!isAnswered) {
-      return selectedValue === value ? 'secondary' : 'outline';
-    }
-    // Answered state
-    if (selectedValue === value) { // This was selected
-      return markResult?.isCorrect ? 'default' : 'destructive'; // Correctly or incorrectly chosen
-    } else if (correctAnswer === value) { // This was the correct answer, but not chosen
-      return 'default'; 
-    } else { // This was not chosen and not correct
-       return 'outline';
-    }
-  };
-
-  const getBgColor = (value: boolean) => {
-     if (!isAnswered) return selectedValue === value ? 'bg-secondary/80 border-input' : '';
-     if (selectedValue === value) { // This was selected
-       return markResult?.isCorrect 
-         ? 'bg-green-100 border-green-300 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-700' 
-         : 'bg-red-100 border-red-300 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200 dark:border-red-700';
-     } else if (correctAnswer === value) { // Correct answer, not chosen
-       return 'bg-green-100 border-green-300 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-700';
-     }
-     return '';
-  };
+  // --- Safety Check & Use Separate Fields --- 
+  if (!questionData || typeof questionData.question !== 'string' || typeof questionData.statement !== 'string') {
+    console.error("[ReadingTrueFalse] Error: Invalid questionData or missing question/statement strings.", questionData);
+    return <div className="text-red-500 p-4">Error: Could not load question content properly.</div>;
+  }
+  const questionText = questionData.question;
+  const statementText = questionData.statement;
+  // --- End Check ---
 
   return (
-    <div className="space-y-4 flex flex-col items-center">
-      {questionData.statement ? (
-        <p className="text-lg text-center mb-4 leading-relaxed">
-            {wrapWords(questionData.statement, textLanguage, displayLanguage)}
-        </p>
-      ) : (
-        <p className="text-red-500">Error: Statement missing.</p>
-      )}
-      <div className="flex gap-4 w-full max-w-xs">
-        <Button
-          variant={getVariant(true)}
-          className={`flex-1 py-4 text-lg transition-colors duration-150 ${getBgColor(true)}`}
-          onClick={() => !isAnswered && onAnswerChange(true)} // Pass boolean true
+    <div className="space-y-6">
+      <p className="text-xl font-semibold mb-2 leading-relaxed">{questionText}</p>
+      <p className="text-muted-foreground pt-1 mb-4 leading-relaxed text-lg border p-4 rounded-md bg-secondary/30">
+        {statementText}
+      </p>
+      
+      {/* Add Hint button */}
+      {!isAnswered && (
+        <HintButton
+          hint={questionData.hint}
+          initialShowHint={questionData.showHint}
           disabled={disabled}
-          aria-pressed={selectedValue === true}
+        />
+      )}
+      
+      <div className="flex justify-center space-x-4 pt-4">
+        <Button
+          variant={userAnswer === true ? 'default' : 'outline'}
+          size="lg"
+          onClick={() => !disabled && onAnswerChange(true)}
+          disabled={disabled}
+          className={cn(
+            "w-32 transition-all",
+            isAnswered && questionData?.isTrue === true && "bg-green-600 hover:bg-green-700 text-white border-green-600",
+            isAnswered && userAnswer === true && questionData?.isTrue === false && "bg-red-600 hover:bg-red-700 text-white border-red-600"
+          )}
         >
           True
         </Button>
         <Button
-          variant={getVariant(false)}
-          className={`flex-1 py-4 text-lg transition-colors duration-150 ${getBgColor(false)}`}
-          onClick={() => !isAnswered && onAnswerChange(false)} // Pass boolean false
+          variant={userAnswer === false ? 'default' : 'outline'}
+          size="lg"
+          onClick={() => !disabled && onAnswerChange(false)}
           disabled={disabled}
-          aria-pressed={selectedValue === false}
+          className={cn(
+            "w-32 transition-all",
+            isAnswered && questionData?.isTrue === false && "bg-green-600 hover:bg-green-700 text-white border-green-600",
+            isAnswered && userAnswer === false && questionData?.isTrue === true && "bg-red-600 hover:bg-red-700 text-white border-red-600"
+          )}
         >
           False
         </Button>
       </div>
     </div>
   );
-}; 
+};
+
+export default ReadingTrueFalseComponent; 

@@ -32,6 +32,62 @@ This file tracks the development tasks for the Leap learning platform.
 -   [x] ~~Enhance Constraint Logic.~~ Log: Added basic theme inference based on submodule context.
 -   [x] ~~Fix MC Gap Generation.~~ Log: Moved gap insertion to UI component.
 
+## Speaking Modal Implementation
+
+**Goal:** Add a speaking interaction modal that uses the user's microphone for real conversation practice, with AI-generated questions and voice responses.
+
+**Phase 1: Setup & Configuration**
+
+- [x] ~~**Add ElevenLabs Environment Variables:** Add API key and voice ID to `.env.local`.~~ Log: Added variables with Rachel voice ID as default.
+- [x] ~~**Install Dependencies:** Run `npm install @11labs/react` to add ElevenLabs React hooks.~~ Log: Installed @11labs/react package with some peer dependency warnings.
+- [x] ~~**Update Task Documentation:** Add section to `Tasks.md`.~~ Log: Added detailed implementation plan.
+
+**Phase 2: Modal Definition**
+
+- [x] ~~**Create Modal Definition File:** Create `src/lib/learning/modals/definitions/speaking-conversation.modal.ts`.~~ Log: Created modal definition with schemas and prompts.
+- [x] ~~**Define Generation Schema:** Create a `SpeakingConversationSchema` with array of 3 questions.~~ Log: Created schema to support 3 questions, hint, and showHint.
+- [x] ~~**Define Generation Prompt:** Create `getSpeakingConversationGenerationPrompt` function.~~ Log: Created function with language and difficulty support.
+- [x] ~~**Define Marking Schema:** Create `SpeakingConversationMarkingSchema`.~~ Log: Created schema matching AiMarkingResult.
+- [x] ~~**Define Marking Prompt:** Create `getSpeakingConversationMarkingPrompt` function.~~ Log: Added function for evaluating spoken answers.
+- [x] ~~**Create Modal Definition:** Create `speakingConversationModalDefinition` object.~~ Log: Added definition with all required fields.
+- [x] ~~**Register Modal:** Update `registry.service.ts` to include the new modal.~~ Log: Updated registry service.
+- [x] ~~**Update Module Definitions:** Add "speaking-conversation" to relevant modules' `supportedModalSchemaIds`.~~ Log: Updated `adjective-declension.de.json`.
+
+**Phase 3: Frontend Component**
+
+- [x] ~~**Create Component File:** Create `src/components/learning/interactions/SpeakingConversation.tsx`.~~ Log: Created component with mock implementations.
+- [x] ~~**Define Component Props:** Match expected properties from `SessionPage`.~~ Log: Defined props matching the required interface.
+- [x] ~~**Implement Component State:** Track questions, transcripts, and interaction states.~~ Log: Added state for tracking conversation flow.
+- [x] ~~**Add ElevenLabs Hooks:** Integrate TTS and STT hooks.~~ Log: Added mock implementations for now.
+- [x] ~~**Create UI Elements:** Design responsive UI with transcript display, microphone controls, and feedback.~~ Log: Added UI for all states.
+- [x] ~~**Implement Conversation Logic:** Build the question-answer-feedback flow.~~ Log: Added logic for multi-question progression.
+- [x] ~~**Add Idle Detection:** Implement timeout for user inactivity with prompts.~~ Log: Added timer and prompt logic.
+- [x] ~~**Handle Errors:** Add error states for permissions and API failures.~~ Log: Added error handling.
+
+**Phase 4: Session Page Integration**
+
+- [x] ~~**Update `SessionPage`:** Add a case for 'SpeakingConversation' in the `renderInteractionUI` function.~~ Log: Updated session page.
+- [x] ~~**Adjust Answer Handling:** Update how multi-question flow works with the submit logic.~~ Log: Workflow handled internally by component.
+- [ ] **Test Integration:** Ensure the modal works with the existing marking and progression flow.
+
+**Phase 5: Testing & Refinement**
+
+- [ ] **Replace Mock Implementations:** Replace mock TTS and STT with actual ElevenLabs hooks.
+- [ ] **Test Audio Permission Flow:** Ensure browser permissions work correctly.
+- [ ] **Test Conversation Flow:** Verify multi-question sequence works as expected.
+- [ ] **Test Error Handling:** Check behavior on network errors or permission issues.
+- [ ] **Optimize Performance:** Ensure audio processing doesn't impact UI responsiveness.
+- [ ] **Review Accessibility:** Ensure modal is accessible, with visual indicators for audio states.
+
+**Phase 6: Future Improvements**
+
+- [ ] **Add Speech Recognition Timeout:** Implement a maximum time limit for each question.
+- [ ] **Add Skip Option:** Allow users to skip questions they don't want to answer.
+- [ ] **Improve Error Word Detection:** Add highlighting for mispronounced or incorrect words.
+- [ ] **Voice Selection Options:** Allow users to choose different AI voices.
+- [ ] **Audio Playback Controls:** Add ability to replay the AI's question.
+- [ ] **Support for Custom Questions:** Let teachers/admins create specific speaking exercises.
+
 ## Refactoring: Deterministic Error Generation (80/20 Logic)
 
 **(Superseded by Vocabulary/Structure Controlled Generation Refactoring for sentence-error-* modals, but structure schema and AI service changes remain relevant)**

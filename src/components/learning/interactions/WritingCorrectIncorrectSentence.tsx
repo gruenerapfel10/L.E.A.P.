@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { WordPopover } from './WordPopover';
 import { cn } from "@/lib/utils";
+import HintButton from './HintButton';
 
 // Assuming SentenceStructure types are available (adjust import path if needed)
 // import { SentenceStructure } from '@/lib/learning/grammar/sentence-structure.schema';
@@ -20,6 +21,8 @@ interface CorrectIncorrectQuestionData {
   originalStructure?: any; // Original correct structure
   errorsIntroduced?: any[]; // Details of errors made by the service
   isCorrect?: boolean; // Added for the 'confirm' taskType where no errors were made
+  hint?: string; // Optional hint to help identify or fix errors
+  showHint?: boolean; // Whether to show the hint by default
 }
 
 interface InteractionProps {
@@ -80,7 +83,9 @@ export const WritingCorrectIncorrectSentence: React.FC<InteractionProps> = (
       presentedSentence, 
       taskType, 
       incorrectSegments = [], // Default to empty array
-      isCorrect // For confirm task
+      isCorrect, // For confirm task
+      hint,
+      showHint
     } = questionData;
   const textLanguage = 'de'; // Assume German for now
   const displayLanguage = 'en';
@@ -183,6 +188,15 @@ export const WritingCorrectIncorrectSentence: React.FC<InteractionProps> = (
   return (
     <div className="space-y-4">
       {renderTaskUI()}
+      
+      {/* Add Hint button */}
+      {!isAnswered && (
+        <HintButton
+          hint={hint}
+          initialShowHint={showHint}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 }; 

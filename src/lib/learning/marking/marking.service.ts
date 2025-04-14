@@ -1,33 +1,33 @@
 import { aiService } from '../ai/ai.service';
 import { moduleRegistryService } from '../registry/module-registry.service';
 import { modalSchemaRegistryService } from '../modals/registry.service';
-import { SubmoduleDefinition, SessionEvent, ModuleDefinition } from '../types/index';
-import { ModalSchemaDefinition, InteractionTypeTag } from '../modals/types';
+import { ModuleDefinition, SubmoduleDefinition } from '../types/index';
+import { ModalTypeDefinition, ModalMarkingContext } from '../modals/types';
 import { z } from 'zod'; // Import Zod
 import { isDebugMode } from '@/lib/utils/debug'; // Import debug utility
 
 const DEBUG_MARKING = isDebugMode('MARKING');
 
-// Define the expected output structure for AI marking as a Zod schema
+// --- Define the standard marking output structure HERE --- 
 const AiMarkingResultSchema = z.object({
   isCorrect: z.boolean().describe("Whether the user's answer was correct."),
   score: z.number().min(0).max(100).describe("A score from 0 to 100."),
   feedback: z.string().describe("Feedback for the user, explaining the result."),
-  // Require a string, but instruct AI to return empty string if no correction needed
   correctAnswer: z.string().describe("The correct answer or relevant correct segment if the user was wrong. Return an empty string (\"\") if no specific correction applies (e.g., user was correct or task type is confirm).")
 });
 export type AiMarkingResult = z.infer<typeof AiMarkingResultSchema>;
+// -------------------------------------------------------
 
 // --- Define Interface for markAnswer parameters --- 
 interface MarkAnswerParams {
   userId: string;
   sessionId: string;
-  moduleId: string; // Added moduleId
+  moduleId: string;
   submoduleId: string;
   modalSchemaId: string;
   moduleDefinition: ModuleDefinition;
   submoduleDefinition: SubmoduleDefinition;
-  modalSchemaDefinition: ModalSchemaDefinition;
+  modalSchemaDefinition: ModalTypeDefinition;
   questionData: any;
   userAnswer: any;
   targetLanguage: string;
@@ -51,11 +51,10 @@ export class MarkingService {
    * Mark the user's answer based on the submodule and modal schema.
    */
   async markAnswer(params: MarkAnswerParams): Promise<AiMarkingResult> {
-    // Destructure properties from the params object
     const {
       userId,
       sessionId,
-      moduleId, // Destructure moduleId
+      moduleId,
       submoduleId,
       modalSchemaId,
       moduleDefinition,
@@ -68,91 +67,38 @@ export class MarkingService {
       difficulty
     } = params;
     
-    // Safely access overrides using optional chaining
-    const overrideConfig = submoduleDefinition?.overrides?.[modalSchemaId];
-    const markingPromptOverride = overrideConfig?.markingPromptOverride;
-
-    const markingConfig = markingPromptOverride
-      ? { 
-          promptTemplate: markingPromptOverride, // Use the safely accessed variable
-          zodSchema: modalSchemaDefinition.markingConfig.zodSchema // Use schema from base modal
-        }
-      : modalSchemaDefinition.markingConfig;
-
-    // Check if modalSchemaDefinition or its markingConfig is missing
-    if (!modalSchemaDefinition?.markingConfig) {
-      throw new Error(`Base marking configuration missing for modal schema ${modalSchemaId}`);
+    // --- Use the new ModalTypeDefinition structure --- 
+    if (!modalSchemaDefinition || !modalSchemaDefinition.getMarkingPrompt || !modalSchemaDefinition.markingSchema) {
+        throw new Error(`Marking configuration (getMarkingPrompt or markingSchema) missing for modal schema ${modalSchemaId}`);
     }
 
-    if (!markingConfig?.promptTemplate) {
-      // Log details if the prompt is still missing
-      console.warn(`Marking prompt template missing for modal schema ${modalSchemaId}. Submodule override exists: ${!!overrideConfig}, Override prompt exists: ${!!markingPromptOverride}`);
-      throw new Error(`Marking configuration or prompt template missing for modal schema ${modalSchemaId}`);
-    }
-
-    // Prepare input for the AI prompt - Tailor based on modalSchemaId
-    let markingInput: Record<string, any> = {
-        // Common fields
-        submoduleContext: submoduleDefinition?.submoduleContext,
-        targetLanguage: targetLanguage,
-        sourceLanguage: sourceLanguage,
-        difficulty: difficulty,
-        userId: userId,
-        sessionId: sessionId
+    // Prepare input context for the marking prompt function
+    const markingContext: ModalMarkingContext = {
+        questionData: questionData,
+        userAnswer: userAnswer,
+        submoduleContext: submoduleDefinition?.submoduleContext, // Pass context if available
+        // Add any other fields needed by getMarkingPrompt implementations
     };
 
-    // Add specific fields based on the modal schema being marked
-    if (modalSchemaId === 'multiple-choice') {
-        const userSelectedIndex = userAnswer; // User answer is the index for MC
-        const correctOptionIndex = questionData?.correctOptionIndex;
-        const options = questionData?.options;
-        
-        markingInput = {
-            ...markingInput,
-            question: questionData?.question,                 
-            sentence: questionData?.sentence,                   
-            options: JSON.stringify(options),      
-            targetWordBase: questionData?.targetWordBase,
-            correctOptionIndex: correctOptionIndex,
-            userAnswerIndex: userSelectedIndex, // Use the correct placeholder name
-            // Safely get text based on indices
-            userAnswer: options?.[userSelectedIndex], // Text of user's choice
-            correctAnswer: options?.[correctOptionIndex], // Text of correct choice
-        };
-    } else if (modalSchemaId === 'true-false') {
-        markingInput = {
-            ...markingInput,
-            statement: questionData?.statement,               
-            userAnswerBool: userAnswer, // User answer is boolean for T/F                       
-            isCorrectAnswerTrue: questionData?.isCorrectAnswerTrue,
-            explanation: questionData?.explanation,          
-        };
-    } else {
-        // Default/Fallback for other types (might need refinement)
-        markingInput = {
-            ...markingInput,
-            questionData: JSON.stringify(questionData), 
-            userAnswer: JSON.stringify(userAnswer),    
-        };
-        console.warn(`[Marking Service] Using generic markingInput for unhandled modalSchemaId: ${modalSchemaId}`);
-    }
+    // Generate the prompt using the modal's specific function
+    const compiledPrompt = modalSchemaDefinition.getMarkingPrompt(markingContext);
     
-    // Compile the retrieved prompt template WITH the prepared markingInput data
-    const compiledPrompt = compilePrompt(markingConfig.promptTemplate, markingInput);
+    // Get the Zod schema for the expected marking result
+    const expectedSchema = modalSchemaDefinition.markingSchema;
+    // -------------------------------------------------
 
     if (DEBUG_MARKING) {
-        console.log("[Marking Service] Marking Input (Specific Fields):", markingInput);
-        console.log("[Marking Service] Base Prompt Template Retrieved:", markingConfig.promptTemplate); // Log the template string we *think* we are using
-        console.log("[Marking Service] COMPILED Prompt:", compiledPrompt.substring(0,500) + "..."); // Log compiled prompt
-        console.log("[Marking Service] Zod Schema:", markingConfig.zodSchema);
+        console.log("[Marking Service] Marking Context:", markingContext);
+        console.log("[Marking Service] COMPILED Prompt:", compiledPrompt.substring(0,500) + "...");
+        console.log("[Marking Service] Using Zod Schema from Modal Definition.");
     }
 
     try {
-      // Call AI service with the COMPILED prompt
+      // Call AI service with the generated prompt and schema
       const result = await aiService.generateStructuredData(
         compiledPrompt,          
-        AiMarkingResultSchema,   
-        'AiMarkingResultSchema'  
+        expectedSchema, // Use the schema from the modal definition
+        `MarkingSchema for ${modalSchemaId}`  
       );
       
       if (DEBUG_MARKING) {
@@ -163,13 +109,30 @@ export class MarkingService {
           throw new Error('AI service returned null mark data.');
       }
       
-      // Ensure the result conforms to the schema (already done by aiService, but good practice)
-      const parsedResult = AiMarkingResultSchema.parse(result);
-      return parsedResult;
+      // Ensure the result conforms to the expected schema 
+      // (aiService should handle this, but parsing here ensures type safety)
+      const parsedResult = expectedSchema.parse(result);
+      
+      // --- Adapt/Validate the parsed result to the standard AiMarkingResult --- 
+      // Check if the parsed result conforms to the *standard* AiMarkingResultSchema
+      const validation = AiMarkingResultSchema.safeParse(parsedResult);
+      if (!validation.success) {
+         console.warn(`[Marking Service] Result from ${modalSchemaId} marking schema doesn't match standard AiMarkingResult structure. Validation errors:`, validation.error.issues);
+         // Return default error if fields are incompatible
+         return {
+            isCorrect: false,
+            score: 0,
+            feedback: "Marking schema validation mismatch.",
+            correctAnswer: ""
+         };
+      }
+      // ---------------------------------------------------------------------------
+
+      return validation.data; // Return the validated data adhering to AiMarkingResult
 
     } catch (error) {
        console.error("[Marking Service] AI Marking Error:", error);
-       // Consider returning a default error marking result
+       // Return a default error marking result
        return {
          isCorrect: false,
          score: 0,
@@ -180,22 +143,12 @@ export class MarkingService {
   }
 }
 
-// Helper function compilePrompt (ensure it handles boolean values properly)
+// Remove the old compilePrompt helper if no longer needed elsewhere
+/*
 function compilePrompt(template: string, data: Record<string, any>): string {
-  let compiled = template;
-  for (const key in data) {
-    // Use optional chaining for safety, skip null/undefined values
-    const value = data[key]; 
-    if (value !== null && value !== undefined) { 
-        const regex = new RegExp(`\{${key}\}`, 'g');
-        // Convert value to string before replacement
-        compiled = compiled.replace(regex, String(value)); 
-    }
-  }
-  // Handle potential missing placeholders gracefully (replace with empty string or [MISSING])
-  compiled = compiled.replace(/\{[^{}]+\}/g, '[MISSING]'); 
-  return compiled;
+  // ... old implementation ...
 }
+*/
 
 // Create a singleton instance
 export const markingService = new MarkingService(); 

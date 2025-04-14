@@ -19,7 +19,7 @@
         "es": { "title": "Concordancia de Género" },
         "en": { "title": "Gender Agreement" }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "sentence-error-identify", "sentence-error-replace"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "identify-error", "replace-error"],
       "submoduleContext": "Focuses on choosing the correct adjective ending (-o/-a) to match the gender (masculine/feminine) of the noun.",
       "overrides": {
         "multiple-choice": {
@@ -28,10 +28,10 @@
         "fill-in-gap": {
            "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT Spanish example sentence. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE adjective with '___'. Provide the sentence template and the correct adjective form. Format the output as JSON."
         },
-        "sentence-error-identify": {
+        "identify-error": {
             "allowedErrorTypes": ["ADJECTIVE_ENDING"]
         },
-        "sentence-error-replace": {
+        "replace-error": {
             "allowedErrorTypes": ["ADJECTIVE_ENDING"]
         }
       },
@@ -50,7 +50,7 @@
         "es": { "title": "Concordancia de Número" },
         "en": { "title": "Number Agreement" }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "sentence-error-identify", "sentence-error-replace"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "identify-error", "replace-error"],
       "submoduleContext": "Focuses on adding the correct ending (-s/-es) to adjectives to match the number (singular/plural) of the noun.",
       "overrides": {
         "multiple-choice": {
@@ -59,10 +59,10 @@
          "fill-in-gap": {
            "generationPromptOverride": "Based on the context '{submoduleContext}', first generate ONE single, complete, grammatically CORRECT Spanish example sentence using a plural noun and adjective. This sentence MUST use the vocabulary words provided: {requiredVocabList}, adhere to these structural constraints: {structuralConstraintsDescription}. THEN, using that generated sentence, create a fill-in-the-gap question by replacing ONE plural adjective with '___'. Provide the sentence template and the correct adjective form. Format the output as JSON."
         },
-        "sentence-error-identify": {
+        "identify-error": {
             "allowedErrorTypes": ["ADJECTIVE_ENDING"]
         },
-        "sentence-error-replace": {
+        "replace-error": {
             "allowedErrorTypes": ["ADJECTIVE_ENDING"]
         }
       },
