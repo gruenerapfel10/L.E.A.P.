@@ -101,11 +101,31 @@ export class QuestionGenerationService {
       submodulePrimaryTask,
       submoduleContext: submoduleDefinition.submoduleContext
     });
+    
+    // Specific logging for listening-transcribe
+    if (modalSchemaId === 'listening-transcribe') {
+        console.log("\n--- [ListenTranscribe Generation Log] ---");
+        console.log("Modal ID:", modalSchemaId);
+        console.log("Full Prompt Sent:");
+        console.log(stage1Prompt);
+        console.log("-----------------------------------------\n");
+    }
+
     console.log("Stage 1 Prompt:\n", stage1Prompt);
 
     let stage1Result: any = null;
     try {
         stage1Result = await aiService.generateStructuredData(stage1Prompt, schemaToUse, schemaDescription);
+        
+        // Specific logging for listening-transcribe
+        if (modalSchemaId === 'listening-transcribe') {
+            console.log("\n--- [ListenTranscribe Generation Log] ---");
+            console.log("Modal ID:", modalSchemaId);
+            console.log("Raw Result Received:");
+            console.log(JSON.stringify(stage1Result, null, 2));
+            console.log("-----------------------------------------\n");
+        }
+
         console.log("Stage 1 Result:\n", JSON.stringify(stage1Result, null, 2));
         if (!stage1Result) throw new Error("AI returned null during Stage 1.");
     } catch (error) {
@@ -135,27 +155,41 @@ export class QuestionGenerationService {
         };
     }
 
-    const stage2Prompt = `Original Question: ${JSON.stringify(stage1Result)}\nVocabulary Word to Integrate: "${vocabListString}"\n\nTask: Minimally modify the question to naturally incorporate the vocabulary word while maintaining the original structure and learning objectives.\n\nOutput ONLY the updated JSON object.`;
+    // Refined Stage 2 Prompt
+    const stage2Prompt = `Given the following JSON object representing a language learning question:\n\`\`\`json\n${JSON.stringify(stage1Result, null, 2)}\n\`\`\`\nAnd the vocabulary word: \"${vocabListString}\"\n\nTask: Modify the \`content\` field of *one* of the questions within the \`questions\` array to naturally incorporate the vocabulary word \"${vocabListString}\". Keep all other fields and the overall JSON structure identical.\n\nOutput ONLY the complete, updated, and valid JSON object. Do not add any text before or after the JSON.`;
 
     console.log("Stage 2 Prompt:\n", stage2Prompt);
     
     let finalResult: any = null;
+    let finalResultForLogging: any = null; // Variable to hold the final result for logging
+
     try {
         finalResult = await aiService.generateStructuredData(stage2Prompt, schemaToUse, `Stage 2 Refinement - ${schemaDescription}`);
         console.log("Stage 2 Result (Final Output):\n", JSON.stringify(finalResult, null, 2));
         if (!finalResult) throw new Error("AI returned null during Stage 2.");
+        finalResultForLogging = finalResult; // Assign final result from stage 2
     } catch (error) {
         console.error("Error during Stage 2 generation:", error);
         throw new Error(`Failed to refine question data for ${schemaDescription}. Error: ${(error instanceof Error ? error.message : String(error))}`);
     }
 
+    // Specific logging for listening-transcribe (logging the final determined result)
+    if (modalSchemaId === 'listening-transcribe') {
+        const resultToLog = finalResultForLogging !== null ? finalResultForLogging : stage1Result; // Log stage 1 if stage 2 skipped/failed
+        console.log("\n--- [ListenTranscribe Generation Log] ---");
+        console.log("Modal ID:", modalSchemaId);
+        console.log("Final Question Data Object:");
+        console.log(JSON.stringify(resultToLog, null, 2));
+        console.log("-----------------------------------------\n");
+    }
+
            return {
-        questionData: finalResult,
+        questionData: finalResultForLogging !== null ? finalResultForLogging : stage1Result, // Return the correct final data
         debugInfo: {
             stage1Prompt,
             stage1Result,
             stage2Prompt,
-            stage2Result: finalResult,
+            stage2Result: finalResultForLogging, // Log stage 2 result if available
             vocabularyUsed: randomVocab
         }
     };

@@ -41,6 +41,8 @@ import { modalSchemaRegistryService } from '@/lib/learning/modals/registry.servi
 import ReadingIdentifyErrorComponent from '@/components/learning/interactions/ReadingIdentifyError';
 import WritingReplaceErrorComponent from '@/components/learning/interactions/WritingReplaceError';
 import SpeakingConversation from '@/components/learning/interactions/SpeakingConversation';
+import { ListeningTranscribeComponent } from '@/components/learning/interactions/ListeningTranscribe';
+import ListeningErrorComponent from '@/components/learning/interactions/ListeningError';
 
 // Key for localStorage
 const ACTIVE_SESSION_ID_KEY = 'activeLearningSessionId';
@@ -614,7 +616,11 @@ export default function SessionPage({ params }: SessionPageProps) {
        case 'WritingCorrectIncorrectSentence':
          return <WritingCorrectIncorrectSentence {...commonProps} />;
        case 'SpeakingConversation':
-         return <SpeakingConversation {...commonProps} />;
+         return <SpeakingConversation {...commonProps} targetLanguage={state.targetLanguage} />;
+       case 'ListeningTranscribe':
+         return <ListeningTranscribeComponent {...commonProps} targetLanguage={state.targetLanguage} />;
+       case 'ListeningError':
+         return <ListeningErrorComponent {...commonProps} targetLanguage={state.targetLanguage} />;
        default:
          console.warn(`Rendering fallback: UI component not found for ID: ${state.currentUiComponent}`);
          return <div className="text-red-500">Error: Unknown interaction type ({state.currentUiComponent}).</div>;

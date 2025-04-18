@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { ModuleDefinition } from '../types';
+import { ModuleDefinition } from '../types/index';
 
 /**
  * Represents a conceptual module, potentially available in multiple languages.

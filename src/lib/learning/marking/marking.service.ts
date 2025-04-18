@@ -83,6 +83,15 @@ export class MarkingService {
     // Generate the prompt using the modal's specific function
     const compiledPrompt = modalSchemaDefinition.getMarkingPrompt(markingContext);
     
+    // Specific logging for listening-transcribe prompt
+    if (modalSchemaId === 'listening-transcribe') {
+        console.log("\n--- [ListenTranscribe Marking Log] ---");
+        console.log("Modal ID:", modalSchemaId);
+        console.log("Full Marking Prompt Sent:");
+        console.log(compiledPrompt);
+        console.log("-------------------------------------\n");
+    }
+
     // Get the Zod schema for the expected marking result
     const expectedSchema = modalSchemaDefinition.markingSchema;
     // -------------------------------------------------
@@ -101,8 +110,13 @@ export class MarkingService {
         `MarkingSchema for ${modalSchemaId}`  
       );
       
-      if (DEBUG_MARKING) {
-        console.log("[Marking Service] Raw AI Result:", result);
+      // Specific logging for listening-transcribe raw result
+      if (modalSchemaId === 'listening-transcribe') {
+          console.log("\n--- [ListenTranscribe Marking Log] ---");
+          console.log("Modal ID:", modalSchemaId);
+          console.log("Raw AI Result Received:");
+          console.log(JSON.stringify(result, null, 2));
+          console.log("-------------------------------------\n");
       }
 
       if (!result) {
@@ -127,6 +141,15 @@ export class MarkingService {
          };
       }
       // ---------------------------------------------------------------------------
+
+      // Specific logging for listening-transcribe final validated result
+      if (modalSchemaId === 'listening-transcribe' && validation.success) {
+          console.log("\n--- [ListenTranscribe Marking Log] ---");
+          console.log("Modal ID:", modalSchemaId);
+          console.log("Final Validated Marking Data:");
+          console.log(JSON.stringify(validation.data, null, 2));
+          console.log("-------------------------------------\n");
+      }
 
       return validation.data; // Return the validated data adhering to AiMarkingResult
 

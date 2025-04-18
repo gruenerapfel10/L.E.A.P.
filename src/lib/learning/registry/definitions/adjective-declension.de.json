@@ -21,7 +21,16 @@
           "title": "Nach bestimmte Artikel"
         }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation"],
+      "supportedModalSchemaIds": [
+        "multiple-choice", 
+        "fill-in-gap", 
+        "true-false", 
+        "identify-error", 
+        "replace-error", 
+        "speaking-conversation",
+        "listening-transcribe",
+        "listening-error"
+      ],
       "submoduleContext": "Focuses on adjective endings after definite articles (der, die, das, etc.) in different cases (Nominative, Accusative, Dative, Genitive).",
       "primaryTask": "Generate a sentence using definite articles (der, die, das) with adjectives, where the adjective takes the weak declension pattern (-e in nominative singular for all genders, -en in all other cases). The adjective must follow a definite article and demonstrate the correct weak ending.",
       "overrides": {},
@@ -41,7 +50,7 @@
           "title": "Nach unbestimmte Artikel"
         }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation", "listening-transcribe", "listening-error"],
       "submoduleContext": "Focuses on adjective endings after indefinite articles (ein, eine, einen, etc.) and possessive determiners (mein, dein, sein, etc.) in different cases.",
       "primaryTask": "Generate a sentence using indefinite articles (ein, eine) or possessive determiners (mein, dein) with adjectives, where the adjective takes the mixed declension pattern (-er/-es/-e in nominative singular depending on gender, -en in all other cases). The adjective must follow an indefinite article/possessive and demonstrate the correct mixed ending.",
       "overrides": {
@@ -68,7 +77,7 @@
           "title": "Ohne Artikel (Starke Deklination)"
         }
       },
-      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation"],
+      "supportedModalSchemaIds": ["multiple-choice", "fill-in-gap", "true-false", "identify-error", "replace-error", "speaking-conversation", "listening-transcribe", "listening-error"],
       "submoduleContext": "Focuses on adjective endings when there is no article before the adjective (strong declension), often used with plurals or certain prepositions.",
       "primaryTask": "Generate a sentence using adjectives without any articles, where the adjective takes the strong declension pattern (-er/-es/-e in nominative singular, -en/-em/-er in other cases). The adjective must stand alone (no article) and demonstrate the correct strong ending.",
       "overrides": {

@@ -8,6 +8,8 @@ import { fillInGapModalDefinition } from './definitions/fill-in-gap.modal';
 import { identifyErrorModalDefinition } from './definitions/identify-error.modal';
 import { replaceErrorModalDefinition } from './definitions/replace-error.modal';
 import { speakingConversationModalDefinition } from './definitions/speaking-conversation.modal';
+import { listeningTranscribeModalDefinition } from './definitions/listening-transcribe.modal';
+import { listeningErrorModalDefinition } from './definitions/listening-error.modal';
 
 /**
  * Service responsible for loading and providing access to modal schema definitions
@@ -46,6 +48,14 @@ export class ModalSchemaRegistryService {
       // Add the speaking conversation modal
       this.schemas.set(speakingConversationModalDefinition.id, speakingConversationModalDefinition);
       console.log(`Loaded TS modal schema: ${speakingConversationModalDefinition.id}`);
+      
+      // Add the new listening transcribe modal
+      this.schemas.set(listeningTranscribeModalDefinition.id, listeningTranscribeModalDefinition);
+      console.log(`Loaded TS modal schema: ${listeningTranscribeModalDefinition.id}`);
+
+      // Add the new listening error modal
+      this.schemas.set(listeningErrorModalDefinition.id, listeningErrorModalDefinition);
+      console.log(`Loaded TS modal schema: ${listeningErrorModalDefinition.id}`);
       
       this.initialized = true;
       console.log(`Modal Schema Registry initialized with ${this.schemas.size} hardcoded schemas`);

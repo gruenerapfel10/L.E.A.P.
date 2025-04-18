@@ -1,494 +1,486 @@
-'use client';
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Volume2, Loader2, VolumeX } from "lucide-react";
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Volume2, Play, AlertCircle } from 'lucide-react';
 import HintButton from './HintButton';
-import { useConversation, Role } from '@11labs/react';
-import { z } from 'zod';
+import { Card } from '@/components/ui/card';
+import { SpeakingConversationSchema } from '@/lib/learning/modals/definitions/speaking-conversation.modal';
+import { Progress } from '@/components/ui/progress';
 
-// Define the structure for a single question/turn
-const ConversationTurnSchema = z.object({
-  text: z.string(),
-  instruction: z.string().optional(),
-  // Add other relevant fields if needed, e.g., expected_answer
-});
-
-// Define the schema for the main data prop
-const SpeakingConversationDataSchema = z.object({
-  instruction: z.string(), // Overall instruction for the conversation
-  questions: z.array(ConversationTurnSchema), // Array of turns/questions
-  hint: z.string().optional(), // Add optional hint
-  showHint: z.boolean().optional(), // Add optional showHint flag
-});
-
-type SpeakingConversationData = z.infer<typeof SpeakingConversationDataSchema>;
-
-// Define the structure for the user's answer
-type SpeakingAnswer = {
-  transcript: string;
-  // Add confidence score or other metrics if available
-};
-
-// Types for the component props, matching the schema from the modal definition
-interface InteractionProps {
-  data: SpeakingConversationData;
-  onAnswer: (answer: SpeakingAnswer) => void;
-  onAnswerChange?: (answer: SpeakingAnswer) => void; // Optional: For real-time updates if needed
-  isMarked: boolean;
-  isCorrect?: boolean;
-  feedback?: string;
-  disabled?: boolean;
-  targetLanguage?: string; // Add targetLanguage prop
+// Define props interface based on what SessionPage will provide
+interface SpeakingConversationProps {
+  questionData: SpeakingConversationSchema;
+  userAnswer: any;
+  isAnswered: boolean;
+  markResult: any | null;
+  onAnswerChange: (answer: any) => void;
+  disabled: boolean;
+  targetLanguage: string;
 }
 
-// Define component states for the conversation flow
-type ComponentState = 
-  | 'idle'           // Initial state
-  | 'connecting'     // Connecting to ElevenLabs
-  | 'aiSpeaking'     // AI is speaking the question
-  | 'listening'      // User's microphone is active
-  | 'processing'     // Processing user's speech
-  | 'error';         // Error state
+// Define typing for the current conversation state
+interface ConversationState {
+  questionIndex: number;
+  transcript: string;
+  isRecording: boolean;
+  isPlaying: boolean;
+  hasPermission: boolean | null;
+  errorMessage: string | null;
+  finishedQuestions: boolean[];
+  isProcessing: boolean;
+}
 
-const SpeakingConversation: React.FC<InteractionProps> = ({
-  data,
-  onAnswer,
+const SpeakingConversation: React.FC<SpeakingConversationProps> = ({
+  questionData,
+  userAnswer,
+  isAnswered,
+  markResult,
   onAnswerChange,
-  isMarked,
-  isCorrect,
-  feedback = '',
-  disabled = false,
-  targetLanguage,
+  disabled,
+  targetLanguage
 }) => {
-  // Add defensive checks at the start
-  if (!data) {
-    console.error('SpeakingConversation: data prop is undefined');
-    return (
-      <div className="p-4 text-red-500">
-        Error: Conversation data is missing
-      </div>
-    );
-  }
-
-  // Validate data against schema (optional but recommended)
-  const parseResult = SpeakingConversationDataSchema.safeParse(data);
-  if (!parseResult.success) {
-    console.error('SpeakingConversation: data prop validation failed', parseResult.error);
-    return (
-        <div className="p-4 text-red-500">
-            Error: Invalid conversation data structure.
-        </div>
-    );
-  }
-  const validatedData = parseResult.data; // Use validated data
-
-  if (!Array.isArray(validatedData.questions) || validatedData.questions.length === 0) {
-    console.error('SpeakingConversation: questions array is missing or empty', validatedData);
-    return (
-      <div className="p-4 text-red-500">
-        Error: No conversation questions available
-      </div>
-    );
-  }
-
-  // Application state
-  const [componentState, setComponentState] = useState<ComponentState>('idle');
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [transcript, setTranscript] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const hasStartedRef = useRef(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [isConnected, setIsConnected] = useState<boolean>(false); // Local connection state
-
-  // Initialize ElevenLabs conversation
-  const conversation = useConversation({
-    onConnect: () => {
-      console.log('ElevenLabs Connected');
-      setIsConnected(true); // Update local state
-      // Now that connection is confirmed, speak the first question
-      speakFirstQuestion(); 
-    },
-    onDisconnect: () => {
-        console.log('ElevenLabs Disconnected');
-        setIsConnected(false); // Update local state
-    },
-    onMessage: (props: { message: string; source: Role }) => { 
-      console.log('ElevenLabs Message:', props.message, 'Source:', props.source);
-      // Assumption: The hook handles transcript updates internally, 
-      // reflected in a state variable or the hook's return value.
-      // We don't need to parse the message here for transcript/error based on this type.
-    },
-    onError: (err: unknown) => { // Type err as unknown for safer checking
-      // Handle connection errors or other fatal errors
-      console.error('ElevenLabs Hook Error:', err);
-      // Attempt to provide a more specific error message if possible
-      let errorMessage = 'Failed to connect to speech service.';
-      // Check if it looks like a CloseEvent by checking properties
-      if (typeof err === 'object' && err !== null && 'code' in err && 'reason' in err) {
-          const closeEvent = err as CloseEvent; // Safe to cast now
-          errorMessage = `Connection closed unexpectedly: ${closeEvent.reason || 'Unknown reason'} (Code: ${closeEvent.code})`;
-      } else if (err instanceof Error) {
-          errorMessage = err.message;
-      } else if (typeof err === 'string') {
-          errorMessage = err;
-      }
-      setError(errorMessage);
-      setIsConnected(false); // Assume disconnected on error
-      setComponentState('error');
-    },
+  // Initialize state for conversation
+  const [state, setState] = useState<ConversationState>({
+    questionIndex: 0,
+    transcript: '',
+    isRecording: false,
+    isPlaying: false,
+    hasPermission: null,
+    errorMessage: null,
+    finishedQuestions: Array(questionData.questions.length).fill(false),
+    isProcessing: false
   });
 
-  const speakFirstQuestion = useCallback(() => {
-    if (!validatedData.questions || validatedData.questions.length === 0 || !validatedData.questions[0].text) {
-      console.error('No initial question text available to speak.');
-      setError('Missing initial question text.');
-      setComponentState('error');
-      return;
+  // Refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Initialize on component mount
+  useEffect(() => {
+    // Initialize user answer if not already set
+    if (!userAnswer && questionData?.questions?.length > 0) {
+      setTimeout(() => {
+        onAnswerChange({
+          questionIndex: 0,
+          transcript: '',
+          responses: Array(questionData.questions.length).fill('')
+        });
+      }, 0);
     }
 
-    // Cancel any ongoing speech
-    if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-    }
+    // Check microphone permission on mount
+    checkMicrophonePermission();
 
-    const firstQuestionText = validatedData.questions[0].text;
-    console.log(`Attempting to speak first question: "${firstQuestionText}"`);
-    const utterance = new SpeechSynthesisUtterance(firstQuestionText);
-    utteranceRef.current = utterance; // Store reference
-
-    // Attempt to set the language for the utterance
-    if (targetLanguage) {
-      const availableVoices = window.speechSynthesis.getVoices();
-      // Simple language code match (e.g., 'en-US', 'de-DE')
-      const voiceForLang = availableVoices.find(voice => voice.lang.startsWith(targetLanguage)); 
-      if (voiceForLang) {
-        utterance.voice = voiceForLang;
-        utterance.lang = voiceForLang.lang;
-        console.log(`Using voice: ${voiceForLang.name} (${voiceForLang.lang})`);
-      } else {
-        utterance.lang = targetLanguage; // Set lang even if specific voice not found
-        console.warn(`No specific browser voice found for language ${targetLanguage}. Using default.`);
-      }
-    } else {
-        console.warn('targetLanguage prop not provided, using default voice/language.');
-    }
-
-    utterance.onstart = () => {
-      console.log('Browser speech started.');
-      setComponentState('aiSpeaking'); // Use 'aiSpeaking' state while browser talks
-    };
-
-    utterance.onend = () => {
-      console.log('Browser speech finished.');
-      utteranceRef.current = null;
-      // Now transition to listening for user input via ElevenLabs
-      // Use the local isConnected state
-      if (isConnected) { 
-          setComponentState('listening');
-          console.log('State changed to listening');
-          // Optional: Could start ElevenLabs listening explicitly if needed, 
-          // but usually it listens automatically after connection.
-      } else {
-          console.warn('Speech ended but ElevenLabs not connected, returning to idle.');
-          setError('Speech service connection failed after initial prompt.');
-          setComponentState('error');
+    // Cleanup function
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
+  }, []);
 
-    utterance.onerror = (event) => {
-      console.error('Browser speech synthesis error:', event.error);
-      setError(`Failed to speak initial question: ${event.error}`);
-      utteranceRef.current = null;
-      setComponentState('error');
-    };
-
-    window.speechSynthesis.speak(utterance);
-
-  }, [validatedData.questions, targetLanguage, conversation, isConnected]); // Add dependencies
-
-  const startConversation = useCallback(async () => {
-    setError(null); // Clear previous errors
-    setTranscript(''); // Clear previous transcript
-    setComponentState('connecting');
-    console.log('Starting conversation flow...');
-
-    if (!validatedData.questions || validatedData.questions.length === 0) {
-      console.error('No questions available');
-      setError('No questions available for this exercise.');
-      setComponentState('error');
-      return;
-    }
-
-    // Check for agent ID configuration
-    const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
-    if (!agentId) {
-      console.error('ElevenLabs Agent ID not configured');
-      setError('Speech service not properly configured. Please check environment variables.');
-      setComponentState('error'); 
-      return;
-    }
-
-    // Request microphone permission
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (micError) {
-      console.error('Microphone permission denied:', micError);
-      setError('Please allow microphone access to use this feature.');
-      setComponentState('error');
-      return;
-    }
-
-    // Start the ElevenLabs session (connection happens in the background)
-    // The onConnect callback will trigger speakFirstQuestion
-    try {
-        console.log(`Attempting to start ElevenLabs session with agent: ${agentId}`);
-        // Ensure not already connected or connecting
-        if (!isConnected && componentState !== 'connecting') {
-            await conversation.startSession({ agentId });
-            console.log('conversation.startSession called successfully.');
-        } else {
-             console.log('Session already connected or connecting, skipping startSession call.');
-             // If already connected, maybe trigger speakFirstQuestion directly?
-             if (isConnected) speakFirstQuestion();
-        }
-        // State will change to 'aiSpeaking' and then 'listening' via the onConnect -> speakFirstQuestion flow
-    } catch (sessionError) {
-        console.error('Failed to start ElevenLabs session:', sessionError);
-        setError('Unable to connect to speech service. Please try again later.');
-        setComponentState('error');
-        setIsConnected(false);
-        // No need to return here, error state is set
-    }
-}, [conversation, validatedData.questions, isConnected, componentState, speakFirstQuestion]); // Add dependencies
-
-  const stopRecordingAndSubmit = useCallback(() => {
-    console.log('Stopping recording and submitting...');
-    setComponentState('processing'); // Indicate processing
-    
-    // End the ElevenLabs session if active
-    if (isConnected) {
-        console.log('Ending ElevenLabs session manually.');
-        conversation.endSession(); // This should trigger onDisconnect
-        setIsConnected(false); // Assume disconnect starts immediately
-    }
-
-    // Cancel browser speech if it was somehow still active
-    if (utteranceRef.current) {
-        window.speechSynthesis.cancel();
-        utteranceRef.current = null;
-    }
-
-    // Use the final transcript
-    console.log('Final Transcript:', transcript);
-    const finalAnswer: SpeakingAnswer = { transcript };
-
-    // Call the onAnswer prop with the final transcript
-    onAnswer(finalAnswer);
-
-    // Reset component state after submission (or rely on parent component state change)
-    // setComponentState('idle'); // Can be set here or managed by parent via props
-
-  }, [conversation, onAnswer, transcript, isConnected]);
-
-  // --- Effects ---
-  // Effect to load voices for SpeechSynthesis
+  // Effect to update parent state when transcript changes
+  // This prevents the "setState during render" error
   useEffect(() => {
-    const loadVoices = () => {
-        window.speechSynthesis.getVoices(); 
-    };
-    loadVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-  }, []); // Run only once on mount
-
-  // Effect to auto-start conversation on mount if not disabled
-  useEffect(() => {
-    console.log('Initialization effect:', {
-      hasStarted: hasStartedRef.current,
-      disabled,
-      questionCount: validatedData.questions?.length || 0
-    });
-
-    // Auto-start only if idle and not disabled
-    if (!hasStartedRef.current && !disabled && componentState === 'idle') {
-      console.log('Auto-starting conversation...');
-      hasStartedRef.current = true;
-      startConversation();
-    } else {
-      console.log('Not auto-starting because:', {
-        hasStarted: hasStartedRef.current,
-        disabled,
-        state: componentState,
-        questionCount: validatedData.questions?.length || 0
+    if (state.transcript && !state.isProcessing) {
+      const updatedResponses = userAnswer?.responses 
+        ? [...userAnswer.responses] 
+        : Array(questionData.questions.length).fill('');
+      
+      updatedResponses[state.questionIndex] = state.transcript;
+      
+      onAnswerChange({
+        questionIndex: state.questionIndex,
+        transcript: state.transcript,
+        responses: updatedResponses
       });
     }
-    // Intentionally excluding startConversation from dependencies to only run on mount/disabled change
-  }, [disabled, validatedData.questions, componentState]); 
+  }, [state.transcript, state.isProcessing]);
 
-  // Effect to handle external state changes (e.g., moving to next question via isMarked)
-  useEffect(() => {
-    if (isMarked) {
-      // If the interaction is marked externally, reset the state
-      console.log('Resetting component state due to isMarked=true');
-      setComponentState('idle');
-      setTranscript(''); // Clear transcript for the next round
-      setError(null);
-      hasStartedRef.current = false; // Allow auto-start for the next question
-      // Cancel any ongoing speech synthesis if marking happens mid-speech
-       if (window.speechSynthesis.speaking) {
-          window.speechSynthesis.cancel();
-       }
-       if (utteranceRef.current) {
-          utteranceRef.current = null;
-       }
-       // Ensure ElevenLabs session is ended if it was connected
-       if (isConnected) {
-           console.log('Ending session due to isMarked=true');
-           conversation.endSession();
-           setIsConnected(false);
-       }
-    }
-  }, [isMarked, conversation, isConnected]); // Add conversation and isConnected
-
-  // Cleanup on unmount: End session and cancel speech
-  useEffect(() => {
-    // Return a cleanup function
-    return () => {
-        console.log('SpeakingConversation unmounting...');
-        if (isConnected) { // Check local state
-          console.log('Ending ElevenLabs session on unmount.');
-          conversation.endSession();
-          // No need to setIsConnected(false) here as component is unmounting
-        }
-        if (window.speechSynthesis.speaking) {
-            console.log('Cancelling browser speech on unmount.');
-            window.speechSynthesis.cancel();
-        }
-        if (utteranceRef.current) {
-           utteranceRef.current = null; // Clear ref
-        }
-    };
-  }, [conversation, isConnected]); // Add isConnected
-
-  // Render different UI based on component state
-  const renderUI = () => {
-    switch (componentState) {
-      case 'connecting':
-        return (
-          <div className="flex flex-col items-center justify-center p-4">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-2" />
-            <p className="text-sm text-gray-500">Connecting to speech service...</p>
-          </div>
-        );
-      case 'aiSpeaking':
-      case 'listening':
-      case 'processing':
-        const isListening = componentState === 'listening';
-        const isProcessing = componentState === 'processing';
-        return (
-          <div className="flex flex-col items-center space-y-4 p-4">
-            <p className="text-center text-gray-600 dark:text-gray-300">
-              {componentState === 'aiSpeaking' ? 'Listen to the question...' : 'Speak your answer...'}
-            </p>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={stopRecordingAndSubmit}
-              disabled={isProcessing || isMarked || disabled}
-              className={`rounded-full w-16 h-16 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-200'}`}
-            >
-              {isProcessing ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <Mic className={`h-6 w-6 ${isListening ? '' : 'text-gray-500'}`} />
-              )}
-            </Button>
-            <p className="text-sm text-gray-500 min-h-[20px]">
-              {transcript || (isListening ? 'Listening...' : (isProcessing ? 'Processing...' : ''))}
-            </p>
-            {/* Optional Mute Button - Consider if needed for agent audio 
-            <Button variant="ghost" size="sm" onClick={() => setIsMuted(!isMuted)}>
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </Button> 
-            */}
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex flex-col items-center justify-center p-4 text-red-600">
-            <p className="mb-2">Error: {error || 'An unknown error occurred.'}</p>
-            <Button onClick={startConversation} variant="secondary" size="sm">
-              Try Again
-            </Button>
-          </div>
-        );
-      case 'idle':
-      default:
-        // Initial state or after being marked
-        return (
-          <div className="flex flex-col items-center justify-center p-4">
-            <Button 
-              onClick={startConversation} 
-              disabled={isMarked || disabled}
-              size="lg"
-            >
-              <Mic className="mr-2 h-5 w-5" /> Start Speaking Exercise
-            </Button>
-          </div>
-        );
+  // Function to check microphone permission
+  const checkMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setState(prev => ({ ...prev, hasPermission: true, errorMessage: null }));
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error) {
+      console.error('Microphone permission error:', error);
+      setState(prev => ({
+        ...prev,
+        hasPermission: false,
+        errorMessage: 'Microphone access denied. Please allow microphone access in browser settings.'
+      }));
+      return false;
     }
   };
-  
-  return (
-    <div className="space-y-4">
-      {/* Exercise progress indicator */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-muted-foreground">
-          Question {currentQuestionIndex + 1} of {validatedData.questions.length}
-        </div>
-        <div className="flex space-x-1">
-          {validatedData.questions.map((_, index) => (
-            <div 
-              key={index} 
-              className={cn(
-                "h-2 w-8 rounded",
-                currentQuestionIndex === index 
-                  ? "bg-primary" 
-                  : index < currentQuestionIndex 
-                    ? "bg-primary/50" 
-                    : "bg-muted"
-              )}
-            />
-          ))}
-        </div>
-      </div>
-      
-      {/* Hint button - Show if hint exists and state is active */}
-      {validatedData.hint && !['idle', 'connecting', 'error'].includes(componentState) && (
-        <HintButton
-          hint={validatedData.hint}
-          initialShowHint={validatedData.showHint ?? false} // Provide default for initialShowHint
-          disabled={disabled}
-        />
-      )}
-      
-      {/* Main UI based on state */}
-      {renderUI()}
 
-      {/* Feedback Section (Only shown after marking) */}
-      {isMarked && (
-        <div 
-          className={`mt-4 p-3 rounded-md text-sm ${isCorrect ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'}`}
-        >
-          <p className="font-medium">
-            {isCorrect ? 'Correct!' : 'Incorrect'}
-          </p>
-          {feedback && <p>{feedback}</p>}
+  // Function to play the current question using TTS
+  const playQuestion = async () => {
+    if (state.isPlaying || state.isRecording || state.isProcessing) return;
+
+    setState(prev => ({ ...prev, isPlaying: true, errorMessage: null }));
+
+    try {
+      const currentQuestion = questionData.questions[state.questionIndex];
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: currentQuestion.content,
+          languageCode: targetLanguage,
+          ssmlGender: 'FEMALE'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `TTS API Error: ${response.statusText}`);
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setState(prev => ({ ...prev, isPlaying: false }));
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.onerror = (error) => {
+        console.error('Audio playback error:', error);
+        setState(prev => ({ ...prev, isPlaying: false, errorMessage: 'Error playing question audio.' }));
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.play();
+    } catch (error) {
+      console.error('Error playing question:', error);
+      setState(prev => ({ ...prev, isPlaying: false, errorMessage: error instanceof Error ? error.message : 'Failed to play question.' }));
+    }
+  };
+
+  // Function to start recording
+  const startRecording = async () => {
+    if (state.isRecording || state.isPlaying || state.isProcessing || disabled) return;
+
+    try {
+      // Request high-quality audio with specific constraints 
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1,
+        } 
+      });
+      streamRef.current = stream;
+      
+      // Use a higher bitrate for better quality
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000, // Higher bitrate for better quality
+      });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Set processing state
+        setState(prev => ({ ...prev, isProcessing: true, errorMessage: null }));
+
+        try {
+          // Create blob and convert to base64
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
+          
+          // Debug: Log the audio size
+          console.log(`Audio recording size: ${audioBlob.size} bytes`);
+          
+          // Add audio playback for debugging
+          if (audioBlob.size > 0) {
+            const audioUrl = URL.createObjectURL(audioBlob);
+            console.log("Debug: Created audio URL for debugging", audioUrl);
+            // Uncomment to hear what was recorded:
+            // const audio = new Audio(audioUrl);
+            // audio.play();
+          } else {
+            console.error("No audio data recorded (blob size is 0)");
+            throw new Error('No audio data was recorded');
+          }
+          
+          const base64Audio = await blobToBase64(audioBlob);
+          
+          if (!base64Audio) {
+            throw new Error('Failed to convert audio to base64');
+          }
+
+          // Log part of the base64 to verify it's not empty
+          console.log(`Base64 audio data length: ${base64Audio.length}, 
+                      first 50 chars: ${base64Audio.substring(0, 50)}...`);
+
+          // Send to API with very clear debug message
+          console.log(`Sending speech recognition request for language: ${targetLanguage}`);
+          const response = await fetch('/api/speech-to-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audio: base64Audio,
+              languageCode: targetLanguage
+            }),
+          });
+
+          // Check for error responses and parse the error message
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.error || `Server error: ${response.status}`;
+            console.error('Speech recognition API error:', errorMessage);
+            throw new Error(errorMessage);
+          }
+
+          // Get transcript
+          const data = await response.json();
+          
+          // Debug the response
+          console.log('Speech recognition response:', data);
+          
+          // Check if we have a transcript
+          if (!data.transcript || data.transcript === '') {
+            console.warn('Empty transcript received from API');
+          }
+          
+          const transcript = data.transcript || 'No speech detected';
+
+          // Update state with transcript
+          setState(prev => {
+            const updatedFinished = [...prev.finishedQuestions];
+            updatedFinished[prev.questionIndex] = true;
+
+            return {
+              ...prev,
+              transcript,
+              finishedQuestions: updatedFinished,
+              isProcessing: false
+            };
+          });
+        } catch (error) {
+          console.error('Speech recognition error:', error);
+          setState(prev => ({ 
+            ...prev, 
+            errorMessage: error instanceof Error ? error.message : 'Failed to process speech.',
+            isProcessing: false
+          }));
+        }
+      };
+
+      // Start recording with a 1-second timeslice to gather data more frequently
+      mediaRecorder.start(1000);
+      setState(prev => ({ ...prev, isRecording: true, errorMessage: null }));
+    } catch (error) {
+      console.error('Recording error:', error);
+      setState(prev => ({ ...prev, errorMessage: 'Failed to start recording.' }));
+    }
+  };
+
+  // Helper function to convert blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        const base64 = reader.result?.toString().split(',')[1] || null;
+        resolve(base64);
+      };
+      reader.onerror = () => resolve(null);
+    });
+  };
+
+  // Function to stop recording
+  const stopRecording = () => {
+    if (!mediaRecorderRef.current || !state.isRecording) return;
+
+    mediaRecorderRef.current.stop();
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    setState(prev => ({ ...prev, isRecording: false }));
+  };
+
+  // Determine current display elements based on state
+  const currentQuestion = questionData.questions[state.questionIndex];
+  const isLastQuestion = state.questionIndex === questionData.questions.length - 1;
+  const allQuestionsAnswered = state.finishedQuestions.every(q => q === true);
+  const progress = Math.round(
+    (state.finishedQuestions.filter(Boolean).length / questionData.questions.length) * 100
+  );
+
+  // Render permission error if microphone access denied
+  if (state.hasPermission === false) {
+    return (
+      <div className="p-4 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Microphone Access Required</h3>
+        <p className="mb-4">{state.errorMessage || "Please allow microphone access."}</p>
+        <Button onClick={checkMicrophonePermission}>Check Permission Again</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Progress Indicator */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Question {state.questionIndex + 1} of {questionData.questions.length}</span>
+          <span>{progress}% complete</span>
         </div>
+        <Progress value={progress} className="h-2" />
+      </div>
+
+      {/* Conversation Theme */}
+      <div className="text-center mb-4">
+        <span className="text-sm font-medium bg-secondary/50 px-3 py-1 rounded-full">
+          {questionData.conversationTheme}
+        </span>
+      </div>
+
+      {/* Instructions */}
+      <div className="text-center mb-4">
+        <p className="text-sm text-muted-foreground mb-1">{questionData.sourceLanguageInstructions}</p>
+        <p className="text-sm italic">{questionData.targetLanguageInstructions}</p>
+      </div>
+
+      {/* Question Card */}
+      <Card className="p-4 relative overflow-hidden">
+        {state.isPlaying && (
+          <div className="absolute inset-0 bg-primary/5 flex items-center justify-center">
+            <Volume2 className="w-8 h-8 text-primary animate-pulse" />
+          </div>
+        )}
+        <div className="flex items-start gap-4">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={playQuestion}
+            disabled={state.isPlaying || state.isRecording || disabled}
+          >
+            <Play className="h-4 w-4" />
+          </Button>
+          <div>
+            <p className="text-xl font-medium">{currentQuestion?.content || "No question available"}</p>
+            {state.isRecording && (
+              <p className="text-xs text-muted-foreground animate-pulse mt-1">
+                Recording...
+              </p>
+            )}
+            {state.isProcessing && (
+              <p className="text-xs text-muted-foreground animate-pulse mt-1">
+                Processing...
+              </p>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Transcript Display */}
+      {state.transcript && (
+        <Card className="p-4 bg-muted/50 min-h-[60px]">
+          <p className="font-medium mb-1">Your response:</p>
+          <p className="text-muted-foreground italic">
+            {state.transcript}
+          </p>
+        </Card>
+      )}
+
+      {/* Hint Button */}
+      <HintButton
+        hint={questionData.hint}
+        initialShowHint={questionData.showHint}
+        disabled={disabled}
+      />
+
+      {/* Error Message */}
+      {state.errorMessage && (
+        <div className="text-sm text-red-500 flex items-center">
+          <AlertCircle className="w-4 h-4 mr-2" />
+          {state.errorMessage}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-4 justify-center">
+        {/* Record/Stop Button */}
+        <Button 
+          variant={state.isRecording ? "destructive" : "outline"}
+          onClick={state.isRecording ? stopRecording : startRecording}
+          disabled={
+            state.hasPermission !== true ||
+            state.isPlaying ||
+            state.isProcessing ||
+            disabled
+          }
+          className={`flex-1 transition-colors duration-200 ${state.isRecording ? 'animate-pulse' : ''}`}
+          style={{ minWidth: '160px' }}
+        >
+          {state.isRecording ? (
+            <>
+              <MicOff className="mr-2 h-4 w-4" />
+              Stop Recording
+            </>
+          ) : (
+            <>
+              <Mic className="mr-2 h-4 w-4" />
+              Record Answer
+            </>
+          )}
+        </Button>
+        
+        {/* Next Question Button */}
+        {!isLastQuestion && state.finishedQuestions[state.questionIndex] && !state.isRecording && !state.isProcessing && (
+          <Button 
+            variant="secondary"
+            onClick={() => {
+              setState(prev => ({ ...prev, questionIndex: prev.questionIndex + 1, transcript: '' }));
+            }}
+            disabled={disabled || state.isRecording || state.isProcessing}
+            className="flex-1"
+          >
+            Next Question &rarr;
+          </Button>
+        )}
+        
+        {/* Submit Button */}
+        {(allQuestionsAnswered || (isLastQuestion && state.finishedQuestions[state.questionIndex])) && !state.isRecording && !state.isProcessing && (
+          <Button 
+            variant="default"
+            onClick={() => {
+              onAnswerChange({
+                ...userAnswer,
+                isCompleted: true
+              });
+            }}
+            disabled={disabled || state.isRecording || state.isProcessing}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          >
+            Submit Conversation
+          </Button>
+        )}
+      </div>
+
+      {/* Feedback when submitted */}
+      {isAnswered && markResult && (
+        <Card className="p-4 mt-4 bg-muted/30 border-primary">
+          <h3 className="font-medium mb-2">Feedback</h3>
+          <p>{markResult.feedback}</p>
+          {markResult.pronunciation && ( <div className="mt-2"><p className="font-medium">Pronunciation: {markResult.pronunciation.score}/100</p><p className="text-sm">{markResult.pronunciation.feedback}</p></div> )}
+          {markResult.grammar && ( <div className="mt-2"><p className="font-medium">Grammar: {markResult.grammar.score}/100</p><p className="text-sm">{markResult.grammar.feedback}</p></div> )}
+          {markResult.fluency && ( <div className="mt-2"><p className="font-medium">Fluency: {markResult.fluency.score}/100</p><p className="text-sm">{markResult.fluency.feedback}</p></div> )}
+        </Card>
       )}
     </div>
   );

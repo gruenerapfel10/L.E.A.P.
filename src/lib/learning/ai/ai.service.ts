@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createGoogleGenerativeAI } from '@ai-sdk/google'; // Vercel AI SDK import
-import { generateObject, GenerateObjectResult } from 'ai'; // Vercel AI SDK core function
+import { generateText, GenerateTextResult } from 'ai'; // Use generateText
+import { jsonrepair } from 'jsonrepair'; // Import jsonrepair
 import { isDebugMode } from '@/lib/utils/debug';
 
 const DEBUG_AI_SERVICE = isDebugMode('AI_SERVICE');
@@ -37,7 +38,7 @@ export class AIService {
    * @returns The validated data object matching the schema, or null if generation/validation fails after retries.
    */
   async generateStructuredData<T extends z.ZodType<any, any>>(
-    prompt: string, // Back to original parameter name
+    prompt: string,
     zodSchema: T, 
     schemaName: string 
     // REMOVED inputData parameter
@@ -70,29 +71,63 @@ export class AIService {
            console.log(`[AI Service/Vercel SDK Debug] Retrying generation for schema '${schemaName}' (Attempt ${attempts + 1}/${MAX_RETRIES + 1}). Last Error:`, lastError);
          }
          if (DEBUG_AI_SERVICE) {
-             console.log(`[AI Service/Vercel SDK Debug] Calling generateObject with model ${this.modelName}...`);
+             console.log(`[AI Service/Vercel SDK Debug] Calling generateText with model ${this.modelName}...`);
          }
          
-        const result: GenerateObjectResult<z.infer<T>> = await generateObject({
-          model: model,
-          schema: zodSchema,
-          prompt: finalPrompt, // Use the direct prompt
-          mode: 'json', 
-          temperature: 0.8, 
+        // Use generateText to get raw string output
+        const result: GenerateTextResult<any, any> = await generateText<any, any>({
+           model: model,
+           prompt: finalPrompt,
+           temperature: 0.8, 
+           // Removed mode: 'json' and schema from generateText call
         });
-        
+
+        const rawText = result.text;
+
         if (DEBUG_AI_SERVICE) {
-            console.log(`[AI Service/Vercel SDK Debug] generateObject result (Attempt ${attempts + 1}):`, {
-              // Log key parts, avoid logging potentially large rawResponse
-              object: result.object,
-              usage: result.usage,
-              warnings: result.warnings,
-            });
+             console.log(`[AI Service/Vercel SDK Debug] Raw text received (Attempt ${attempts + 1}):\n`, rawText);
         }
 
-        // generateObject automatically validates against the schema.
-        // If it doesn't throw, the object conforms.
-        return result.object; // Success!
+        let repairedText = rawText;
+        try {
+            repairedText = jsonrepair(rawText);
+            if (DEBUG_AI_SERVICE && repairedText !== rawText) {
+                console.log(`[AI Service/Vercel SDK Debug] JSON repaired (Attempt ${attempts + 1}):\n`, repairedText);
+            }
+        } catch (repairError: any) {
+            console.error(`[AI Service/Vercel SDK] jsonrepair failed (Attempt ${attempts + 1}):`, repairError.message);
+            throw new Error(`JSON repair failed: ${repairError.message}`); // Rethrow to trigger retry
+        }
+
+        let parsedObject: any;
+        try {
+            parsedObject = JSON.parse(repairedText);
+        } catch (parseError: any) {
+             console.error(`[AI Service/Vercel SDK] JSON.parse failed after repair (Attempt ${attempts + 1}):`, parseError.message);
+             throw new Error(`JSON parsing failed after repair: ${parseError.message}`); // Rethrow to trigger retry
+        }
+
+        // Now validate the parsed object with Zod
+        const validationResult = zodSchema.safeParse(parsedObject);
+
+        if (!validationResult.success) {
+            console.error(`[AI Service/Vercel SDK] Zod validation failed after repair/parse (Attempt ${attempts + 1}):`, validationResult.error.flatten());
+            // Construct a more informative error for retry
+            throw new Error(`Zod validation failed: ${JSON.stringify(validationResult.error.flatten())}`); 
+        }
+
+        // If validation is successful, return the validated data
+        const validatedData = validationResult.data;
+
+        if (DEBUG_AI_SERVICE) {
+             console.log(`[AI Service/Vercel SDK Debug] generateObject result (Attempt ${attempts + 1}):`, {
+             object: validatedData, // Log the validated data
+             usage: result.usage,
+             warnings: result.warnings,
+           });
+        }
+
+        return validatedData; // Success!
 
       } catch (error: any) {
         lastError = error;

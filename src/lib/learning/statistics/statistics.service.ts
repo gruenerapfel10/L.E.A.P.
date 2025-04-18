@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { SessionEvent } from '../types';
+import { SessionEvent } from '../types/index';
 import { modalSchemaRegistryService } from '../modals/registry.service'; // Import schema registry
 import { InteractionTypeTag } from '../modals/types'; // Import skill type tag
 
