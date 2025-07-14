@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
+// Force Node.js runtime for auth middleware
+export const runtime = 'nodejs'
+
 export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
