@@ -157,7 +157,6 @@ export function getWritingStatistics(): {
     }
   });
   
-  // Get trends (last 10 exercises, oldest to newest for chart display)
   const recentHistory = history.slice(0, 10).reverse();
   const recentTrend = recentHistory.map(entry => entry.score || 0);
   const grammarTrend = recentHistory.map(entry => Math.max(0, 100 - ((entry.grammarMistakeCount || 0) * 5)));
@@ -165,7 +164,6 @@ export function getWritingStatistics(): {
   const wpmTrend = recentHistory.map(entry => entry.wordsPerMinute || 0);
   const accuracyTrend = recentHistory.map(entry => entry.accuracyRate || 0);
   
-  // Calculate improvement rate (compare first vs last 3 exercises)
   let improvementRate = 0;
   if (history.length >= 6) {
     const firstThree = history.slice(-3).map(e => e.score);
