@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import type { WritingExercise, WritingHistory, WritingSubmission, WritingRubric } from './writingSchemas';
 
 const WRITING_HISTORY_KEY = 'writing-history';
