@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
@@ -39,7 +39,7 @@ interface Invitation {
   }
 }
 
-export default function InvitationPage() {
+function InvitationContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -251,120 +251,108 @@ export default function InvitationPage() {
                 {invitation.workspace.description}
               </p>
             )}
-            
+          </div>
+
+          {/* Sender Info */}
+          <div className="flex items-center space-x-4">
+            <Avatar>
+              <AvatarImage src={invitation.sender.image} />
+              <AvatarFallback>{getInitials(invitation.sender.name)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{invitation.sender.name}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {invitation.sender.email}
+              </p>
+            </div>
+          </div>
+
+          {/* Role & Details */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Your role:</span>
-              <Badge 
-                variant="outline" 
-                className={`${getRoleBadgeColor(invitation.role)} flex items-center gap-1`}
-              >
+              <div className="flex items-center space-x-2">
                 {getRoleIcon(invitation.role)}
+                <span className="font-medium">Role:</span>
+              </div>
+              <Badge className={getRoleBadgeColor(invitation.role)}>
                 {invitation.role}
               </Badge>
             </div>
-          </div>
 
-          {/* Invitation Details */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src={invitation.sender.image} />
-                <AvatarFallback>
-                  {getInitials(invitation.sender.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{invitation.sender.name}</p>
-                <p className="text-sm text-gray-500">{invitation.sender.email}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4" />
+                <span className="font-medium">Expires:</span>
               </div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {new Date(invitation.expiresAt).toLocaleDateString()}
+              </span>
             </div>
 
             {invitation.message && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded">
-                <p className="text-sm italic">"{invitation.message}"</p>
-              </div>
+              <>
+                <Separator />
+                <div>
+                  <p className="font-medium mb-2">Message:</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm italic">
+                    "{invitation.message}"
+                  </p>
+                </div>
+              </>
             )}
-
-            <Separator />
-
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>Invited on {new Date(invitation.createdAt).toLocaleDateString()}</span>
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>
-                  Expires {new Date(invitation.expiresAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
           </div>
-
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-            </div>
-          )}
 
           {/* Actions */}
           {isExpired ? (
-            <div className="text-center py-4">
-              <p className="text-red-600 mb-3">This invitation has expired.</p>
-              <Button asChild variant="outline">
-                <Link href="/">Return Home</Link>
-              </Button>
-            </div>
-          ) : status === "loading" ? (
-            <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-500">Loading...</p>
-            </div>
-          ) : !session ? (
-            <div className="space-y-3">
-              <p className="text-center text-sm text-gray-600">
-                Sign in to accept this invitation
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+              <p className="text-red-800 dark:text-red-200">
+                This invitation has expired.
               </p>
-              <Button 
-                onClick={() => router.push(`/auth/signin?callbackUrl=/invitations?token=${token}`)}
-                className="w-full"
-              >
-                Sign In to Accept
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/auth/signup">Create Account</Link>
-              </Button>
             </div>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <Button
-                onClick={() => handleInvitation("decline")}
-                variant="outline"
-                disabled={processing}
                 className="flex-1"
-              >
-                Decline
-              </Button>
-              <Button
                 onClick={() => handleInvitation("accept")}
                 disabled={processing}
-                className="flex-1"
               >
-                {processing ? "Processing..." : "Accept Invitation"}
+                Accept Invitation
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleInvitation("decline")}
+                disabled={processing}
+              >
+                Decline
               </Button>
             </div>
           )}
 
-          {/* Additional Help */}
-          {session && session.user.email !== invitation.email && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-              <p className="text-sm text-amber-700 dark:text-amber-400">
-                <strong>Note:</strong> This invitation was sent to {invitation.email} but you&apos;re 
-                signed in as {session.user.email}. The invitation may not work.
-              </p>
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+              <p className="text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// Main component with Suspense boundary
+export default function InvitationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <InvitationContent />
+    </Suspense>
   )
 } 
