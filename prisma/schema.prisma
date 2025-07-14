@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ReadingAttempt {
+  id          String      @id @default(cuid())
+  userId      String      // Foreign key to your User model
+  startedAt   DateTime    @default(now())
+  completedAt DateTime?
+  score       Int?        // Final score out of 100
+  timeSpent   Int?        // Time spent in seconds
+  answers     Json        // Store answers as JSON
+  sections    Json        // Store section scores as JSON
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model ReadingText {
+  id          String      @id @default(cuid())
+  title       String
+  content     String      @db.Text
+  type        String      // informative, narrative, functional, opinion
+  difficulty  String      // C1
+  questions   Json        // Store questions and correct answers as JSON
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
