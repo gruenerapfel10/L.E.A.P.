@@ -3,7 +3,6 @@ import type { WritingExercise, WritingHistory, WritingSubmission, WritingRubric 
 const WRITING_HISTORY_KEY = 'writing-history';
 const CURRENT_EXERCISE_KEY = 'current-writing-exercise';
 
-// Save comprehensive writing history to localStorage
 export function saveWritingHistory(historyEntry: WritingHistory): void {
   const history = getWritingHistory();
   
